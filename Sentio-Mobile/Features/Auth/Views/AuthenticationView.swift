@@ -15,30 +15,36 @@ enum AuthScreen {
 
 
 struct AuthenticationView: View {
-    @State private var isLogin = false
+    @State private var currentScreen: AuthScreen = .signup
 
     var body: some View {
-        VStack {
-            if isLogin {
+        ZStack {
+            if currentScreen == .login {
                 LoginView {
                     withAnimation(.easeInOut) {
-                        isLogin.toggle()
+                        currentScreen = .signup
                     }
                 }
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
             } else {
                 SignupView {
                     withAnimation(.easeInOut) {
-                        isLogin.toggle()
+                        currentScreen = .login
                     }
                 }
-                .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
+                .transition(.asymmetric(
+                    insertion: .move(edge: .leading).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                ))
             }
         }
-        .animation(.easeInOut, value: isLogin)
+        .animation(.easeInOut, value: currentScreen)
     }
 }
 
-#Preview{
+#Preview {
     AuthenticationView()
 }
