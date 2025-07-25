@@ -2,23 +2,21 @@ import SwiftUI
 
 struct SignupView: View {
     @StateObject private var vm = SignupViewModel()
-    
+
     var body: some View {
         VStack(spacing: 20) {
-            TextField("Email", text: $vm.email)
-                .textFieldStyle(.roundedBorder)
-                .autocapitalization(.none)
+            InputField(placeholder: "Name", text: $vm.name, systemImage: "person", characterLimit: 50)
 
-            SecureField("Password", text: $vm.password)
-                .textFieldStyle(.roundedBorder)
+            InputField(placeholder: "Email", text: $vm.email, systemImage: "envelope", characterLimit: 100)
 
-            SecureField("Confirm Password", text: $vm.confirmPassword)
-                .textFieldStyle(.roundedBorder)
-            
+            SecureInputField(placeholder: "Password", text: $vm.password, systemImage: "lock")
+
+            SecureInputField(placeholder: "Confirm Password", text: $vm.confirmPassword, systemImage: "lock.rotation")
+
             if let error = vm.errorMessage {
                 Text(error).foregroundColor(.red)
             }
-            
+
             Button(action: {
                 Task { await vm.signup() }
             }) {
@@ -31,18 +29,20 @@ struct SignupView: View {
                 }
             }
             .buttonStyle(.borderedProminent)
-            
+            .disabled(!vm.isFormPartiallyValid || vm.isLoading)
+
             NavigationLink("Already have an account? Log in", destination: LoginView())
                 .padding(.top)
         }
         .padding()
         .navigationTitle("Sign Up")
         .navigationDestination(isPresented: $vm.showOnboarding) {
-            OnboardingView()  // ✅ Navigate here after signup
+            OnboardingView()
         }
     }
 }
-
 #Preview {
-    SignupView()
+    NavigationStack {
+        SignupView()
+    }
 }

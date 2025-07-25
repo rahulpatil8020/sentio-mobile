@@ -5,18 +5,27 @@ struct LoginView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            TextField("Email", text: $vm.email)
-                .textFieldStyle(.roundedBorder)
-                .autocapitalization(.none)
+            // 📧 Email Field
+            InputField(
+                placeholder: "Email",
+                text: $vm.email,
+                systemImage: "envelope.fill"
+            )
             
-            SecureField("Password", text: $vm.password)
-                .textFieldStyle(.roundedBorder)
+            // 🔒 Password Field with visibility toggle
+            SecureInputField(
+                placeholder: "Password",
+                text: $vm.password,
+                systemImage: "lock.fill"
+            )
             
+            // ❌ Error message
             if let error = vm.errorMessage {
                 Text(error)
                     .foregroundColor(.red)
             }
             
+            // 🔓 Login Button
             Button(action: {
                 Task { await vm.login() }
             }) {
@@ -32,6 +41,7 @@ struct LoginView: View {
                       vm.password.trimmingCharacters(in: .whitespaces).isEmpty)
             .buttonStyle(.borderedProminent)
             
+            // 🔁 Navigation to Signup
             NavigationLink("Don't have an account? Sign up", destination: SignupView())
                 .padding(.top)
         }
@@ -41,5 +51,7 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView()
+    NavigationStack {
+        LoginView()
+    }
 }

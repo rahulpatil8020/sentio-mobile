@@ -12,6 +12,7 @@ final class AppState: ObservableObject {
 
     @Published var isLoggedIn: Bool
     @Published var currentUser: AuthResponse.User?
+    
 
     private init() {
         // ✅ Check if access token exists to set login state
