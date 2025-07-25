@@ -2,15 +2,25 @@ import SwiftUI
 
 struct SignupView: View {
     @StateObject private var vm = SignupViewModel()
+    let onSwitch: () -> Void
 
     var body: some View {
         VStack(spacing: 20) {
+            VStack(spacing: 4) {
+                Text("Create Account")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+
+                Text("Join us to get started")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.bottom, 10)
+            
             InputField(placeholder: "Name", text: $vm.name, systemImage: "person", characterLimit: 50)
-
             InputField(placeholder: "Email", text: $vm.email, systemImage: "envelope", characterLimit: 100)
-
             SecureInputField(placeholder: "Password", text: $vm.password, systemImage: "lock")
-
             SecureInputField(placeholder: "Confirm Password", text: $vm.confirmPassword, systemImage: "lock.rotation")
 
             if let error = vm.errorMessage {
@@ -31,8 +41,10 @@ struct SignupView: View {
             .buttonStyle(.borderedProminent)
             .disabled(!vm.isFormPartiallyValid || vm.isLoading)
 
-            NavigationLink("Already have an account? Log in", destination: LoginView())
-                .padding(.top)
+            Button("Already have an account? Log in") {
+                onSwitch()
+            }
+            .padding(.top)
         }
         .padding()
         .navigationTitle("Sign Up")
@@ -41,8 +53,7 @@ struct SignupView: View {
         }
     }
 }
+
 #Preview {
-    NavigationStack {
-        SignupView()
-    }
+    SignupView(onSwitch: {})
 }

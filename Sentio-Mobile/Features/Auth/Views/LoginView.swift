@@ -2,30 +2,43 @@ import SwiftUI
 
 struct LoginView: View {
     @StateObject private var vm = LoginViewModel()
-    
+    let onSwitch: () -> Void
+
     var body: some View {
         VStack(spacing: 20) {
+            // 🔑 App Title
+            VStack(spacing: 4) {
+                Text("Welcome Back")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+
+                Text("Log in to continue")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.bottom, 10)
+
             // 📧 Email Field
             InputField(
                 placeholder: "Email",
                 text: $vm.email,
                 systemImage: "envelope.fill"
             )
-            
-            // 🔒 Password Field with visibility toggle
+
+            // 🔒 Password Field
             SecureInputField(
                 placeholder: "Password",
                 text: $vm.password,
                 systemImage: "lock.fill"
             )
-            
-            // ❌ Error message
+
+            // ⚠️ Error Message
             if let error = vm.errorMessage {
-                Text(error)
-                    .foregroundColor(.red)
+                Text(error).foregroundColor(.red)
             }
-            
-            // 🔓 Login Button
+
+            // ✅ Login Button
             Button(action: {
                 Task { await vm.login() }
             }) {
@@ -40,10 +53,12 @@ struct LoginView: View {
             .disabled(vm.email.trimmingCharacters(in: .whitespaces).isEmpty ||
                       vm.password.trimmingCharacters(in: .whitespaces).isEmpty)
             .buttonStyle(.borderedProminent)
-            
-            // 🔁 Navigation to Signup
-            NavigationLink("Don't have an account? Sign up", destination: SignupView())
-                .padding(.top)
+
+            // 🔁 Switch to Signup
+            Button("Don't have an account? Sign up") {
+                onSwitch()
+            }
+            .padding(.top)
         }
         .padding()
         .navigationTitle("Login")
@@ -51,7 +66,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    NavigationStack {
-        LoginView()
-    }
+    LoginView(onSwitch: {})
 }
