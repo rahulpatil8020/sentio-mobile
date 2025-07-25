@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct Sentio_MobileApp: App {
+    @StateObject private var appState = AppState.shared
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if appState.isLoggedIn {
+                HomeTabView()
+            } else {
+                NavigationView {
+                    LoginView()
+                }
+            }
         }
     }
 }
