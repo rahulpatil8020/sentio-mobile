@@ -1,0 +1,64 @@
+# Xcode
+DerivedData/
+*.xcworkspace/
+!default.xcworkspace
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Build
+build/
+*.app
+*.ipa
+*.dSYM
+*.o
+*.so
+*.dylib
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Package.resolved
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+
+# Archives
+*.xcarchive
+
+# Playground junk
+timeline.xctimeline
+playground.xcworkspace/
+
+# Device logs
+*.mobileprovision
+*.xcuserstate
+
+# Temporary
+*.tmp
+*.swp
+*.DS_Store
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Personal settings
+*.orig
+.idea/
+.vscode/
+
+# Prevent committing sensitive keys or config files
+Secrets.plist
