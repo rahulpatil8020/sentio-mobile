@@ -53,5 +53,4 @@ struct DashboardGridCard: View {
         detail: "Feeling good about today"
     )
     .padding()
-    .previewLayout(.sizeThatFits)
 }

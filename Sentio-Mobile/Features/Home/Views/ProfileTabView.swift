@@ -55,19 +55,3 @@ struct ProfileTabView: View {
         }
     }
 }
-
-#Preview {
-    let mockViewModel = HomeViewModel()
-    mockViewModel.user = User(
-        id: "1",
-        name: "Test User",
-        email: "test@example.com",
-        createdAt: "2025-07-24T00:00:00Z"
-    )
-    mockViewModel.pastEmotions = [
-        EmotionalState(id: "e1", state: "Happy", intensity: 8, note: "Had a great day", date: "2025-07-20"),
-        EmotionalState(id: "e2", state: "Stressed", intensity: 5, note: "Too many meetings", date: "2025-07-21")
-    ]
-
-    return ProfileTabView(vm: mockViewModel)
-}

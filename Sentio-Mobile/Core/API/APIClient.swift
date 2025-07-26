@@ -114,7 +114,7 @@ final class APIClient {
 }
 
 // MARK: - Server Error Response
-struct ServerErrorResponse: Decodable {
+struct ServerErrorResponse: Decodable, Error {
     let success: Bool
     let error: ServerErrorDetail
 }

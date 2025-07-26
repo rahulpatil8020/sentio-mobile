@@ -37,7 +37,7 @@ struct SignupView: View {
             }
 
             if let error = vm.errorMessage {
-                AnimatedFieldContainer(delay: 0.55) {
+                AnimatedFieldContainer(delay: 0.10) {
                     Text(error).foregroundColor(.red)
                 }
             }
@@ -68,10 +68,6 @@ struct SignupView: View {
             }
         }
         .padding()
-        .navigationTitle("Sign Up")
-        .navigationDestination(isPresented: $vm.showOnboarding) {
-            OnboardingView()
-        }
     }
 }
 

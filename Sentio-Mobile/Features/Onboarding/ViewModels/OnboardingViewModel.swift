@@ -23,15 +23,9 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
     let locationManager = CLLocationManager()
 
     let availableGoals = [
-        "Improve focus",
-        "Build healthy habits",
-        "Reduce stress",
-        "Increase productivity",
-        "Enhance mindfulness",
-        "Track emotions",
-        "Organize tasks",
-        "Better sleep",
-        "Self-discipline"
+        "Improve focus", "Build healthy habits", "Reduce stress",
+        "Increase productivity", "Enhance mindfulness", "Track emotions",
+        "Organize tasks", "Better sleep", "Self-discipline"
     ]
 
     // MARK: - Validation
@@ -43,7 +37,6 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
                cleaned(customGoal).count >= minFieldLength
     }
 
-    // MARK: - Utilities
     private func cleaned(_ text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let singleSpaced = trimmed.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
@@ -94,7 +87,6 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
 
     // MARK: - Submit
     func submitOnboarding(onSuccess: @escaping () -> Void) async {
-        // Clean input
         city = cleaned(city)
         country = cleaned(country)
         profession = cleaned(profession)
@@ -104,7 +96,6 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
             selectedGoals.append(customGoal)
         }
 
-        // Validate all fields
         guard city.count <= maxFieldLength,
               country.count <= maxFieldLength,
               profession.count <= maxFieldLength,
@@ -125,12 +116,39 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
 
         do {
             let body = try JSONSerialization.data(withJSONObject: payload)
-            _ = try await APIClient.shared.request(
-                endpoint: "/user/profile/update",
+            let response: OnboardResponse = try await APIClient.shared.request(
+                endpoint: "/user/onboard",
                 method: "POST",
                 body: body,
                 requiresAuth: true
-            ) as EmptyResponse
+            )
+
+            // ✅ Set updated user in AppState
+            AppState.shared.currentUser = response.data.user
+
+            onSuccess()
+        } catch let apiError as APIError {
+            errorMessage = apiError.localizedDescription
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+    
+    func skipOnboarding(onSuccess: @escaping () -> Void) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let emptyPayload = try JSONSerialization.data(withJSONObject: [:])
+            let response: OnboardResponse = try await APIClient.shared.request(
+                endpoint: "/user/onboard",
+                method: "POST",
+                body: emptyPayload,
+                requiresAuth: true
+            )
+            AppState.shared.currentUser = response.data.user
             onSuccess()
         } catch let apiError as APIError {
             errorMessage = apiError.localizedDescription

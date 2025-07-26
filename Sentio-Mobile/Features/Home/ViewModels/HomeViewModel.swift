@@ -100,13 +100,6 @@ struct EmotionalState: Decodable, Identifiable {
     let date: String // ISO Date String for history
 }
 
-struct User: Decodable, Identifiable {
-    let id: String
-    let name: String
-    let email: String
-    let createdAt: String // ISO Date String
-}
-
 struct NotificationItem: Decodable, Identifiable {
     let id: String
     let title: String

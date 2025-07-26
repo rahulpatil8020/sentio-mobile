@@ -1,20 +1,18 @@
 //
-//  AuthResponse.swift
+//  OnboardResponse.swift
 //  Sentio-Mobile
 //
-//  Created by Rahul Patil on 7/22/25.
+//  Created by Rahul Patil on 7/25/25.
 //
 
 import Foundation
 
-struct AuthResponse: Decodable {
+struct OnboardResponse: Decodable {
     let success: Bool
     let message: String
-    let data: AuthData
+    let data: OnboardData
 
-    struct AuthData: Decodable {
-        let accessToken: String
-        let refreshToken: String
+    struct OnboardData: Decodable {
         let user: User
     }
 
@@ -24,10 +22,14 @@ struct AuthResponse: Decodable {
 //        let email: String
 //        let createdAt: String
 //        let isOnboarded: Bool
+//        let city: String?
+//        let country: String?
+//        let profession: String?
+//        let goals: [String]?
 //
 //        enum CodingKeys: String, CodingKey {
 //            case id = "_id"
-//            case name, email, createdAt, isOnboarded
+//            case name, email, createdAt, isOnboarded, city, country, profession, goals
 //        }
 //    }
 }

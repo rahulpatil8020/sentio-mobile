@@ -11,7 +11,7 @@ final class AppState: ObservableObject {
     static let shared = AppState()
 
     @Published var isLoggedIn: Bool
-    @Published var currentUser: AuthResponse.User?
+    @Published var currentUser: User?
     
 
     private init() {

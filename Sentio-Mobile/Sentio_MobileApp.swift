@@ -14,9 +14,17 @@ struct Sentio_MobileApp: App {
     var body: some Scene {
         WindowGroup {
             if appState.isLoggedIn {
-                HomeTabView()
+                if let user = appState.currentUser {
+                    if user.isOnboarded {
+                        HomeTabView()
+                    } else {
+                        OnboardingView()
+                    }
+                } else {
+                    // Fallback to login if for some reason user data is missing
+                    AuthenticationView()
+                }
             } else {
-                // Replace NavigationView + LoginView with AuthenticationView
                 AuthenticationView()
             }
         }
