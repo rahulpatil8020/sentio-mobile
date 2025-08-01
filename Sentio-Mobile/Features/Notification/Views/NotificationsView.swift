@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct NotificationsTabView: View {
+struct NotificationsView: View {
     var body: some View {
         NavigationView {
             List {
@@ -25,5 +25,5 @@ struct NotificationsTabView: View {
 }
 
 #Preview {
-    NotificationsTabView()
+    NotificationsView()
 }

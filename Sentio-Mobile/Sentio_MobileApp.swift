@@ -16,7 +16,7 @@ struct Sentio_MobileApp: App {
             if appState.isLoggedIn {
                 if let user = appState.currentUser {
                     if user.isOnboarded {
-                        HomeTabView()
+                        MainView()
                     } else {
                         OnboardingView()
                     }
