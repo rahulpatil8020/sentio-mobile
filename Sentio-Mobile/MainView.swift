@@ -1,3 +1,9 @@
+//
+//  MainView.swift
+//  Sentio-Mobile
+//
+//  Created by Rahul Patil on 7/29/25.
+//
 
 import SwiftUI
 
@@ -17,7 +23,9 @@ struct MainView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color("background2Color").ignoresSafeArea())
+            // 🔹 Background should always come from semantic color
+            .background(Color("Background").ignoresSafeArea())
+            
             VStack {
                 Spacer()
                 CustomNavBar(selectedTab: $selectedTab)
@@ -30,4 +38,5 @@ struct MainView: View {
 
 #Preview {
     MainView()
+        .environment(\.colorScheme, .dark)   // 👈 Preview dark mode
 }

@@ -17,16 +17,26 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
     @Published var errorMessage: String?
 
     // MARK: - Config
-    let maxGoalSelection = 5
     let minFieldLength = 2
     let maxFieldLength = 50
-    let locationManager = CLLocationManager()
+    private let locationManager = CLLocationManager()
 
     let availableGoals = [
-        "Improve focus", "Build healthy habits", "Reduce stress",
-        "Increase productivity", "Enhance mindfulness", "Track emotions",
-        "Organize tasks", "Better sleep", "Self-discipline"
+        "Improve mental health",
+        "Build physical fitness",
+        "Advance in career/education",
+        "Strengthen relationships",
+        "Enhance spirituality/mindfulness",
+        "Achieve financial stability",
+        "Personal growth & learning",
+        "Enjoy hobbies & leisure"
     ]
+
+    // MARK: - Init
+    override init() {
+        super.init()
+        locationManager.delegate = self
+    }
 
     // MARK: - Validation
     var isFormValid: Bool {
@@ -46,7 +56,7 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
     func toggleGoal(_ goal: String) {
         if selectedGoals.contains(goal) {
             selectedGoals.removeAll { $0 == goal }
-        } else if selectedGoals.count < maxGoalSelection {
+        } else {
             selectedGoals.append(goal)
         }
     }
@@ -54,23 +64,46 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
     // MARK: - Location
     func requestLocation() {
         isLoadingLocation = true
-        locationManager.delegate = self
-        locationManager.requestWhenInUseAuthorization()
+        locationDenied = false
 
-        if CLLocationManager.locationServicesEnabled() {
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
             locationManager.requestLocation()
-        } else {
+        case .denied, .restricted:
             isLoadingLocation = false
             locationDenied = true
+        @unknown default:
+            isLoadingLocation = false
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            Task { @MainActor in
+                self.locationDenied = false
+                manager.requestLocation()
+            }
+        case .denied, .restricted:
+            Task { @MainActor in
+                self.isLoadingLocation = false
+                self.locationDenied = true
+            }
+        case .notDetermined:
+            break
+        @unknown default:
+            break
+        }
+    }
+    
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.first else { return }
 
         let geocoder = CLGeocoder()
         geocoder.reverseGeocodeLocation(location) { placemarks, error in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self.isLoadingLocation = false
                 if let placemark = placemarks?.first {
                     self.city = placemark.locality ?? ""
@@ -80,11 +113,12 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        isLoadingLocation = false
-        locationDenied = true
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor in
+            self.isLoadingLocation = false
+            self.locationDenied = true
+        }
     }
-
     // MARK: - Submit
     func submitOnboarding(onSuccess: @escaping () -> Void) async {
         city = cleaned(city)
@@ -123,9 +157,7 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
                 requiresAuth: true
             )
 
-            // ✅ Set updated user in AppState
             AppState.shared.currentUser = response.data.user
-
             onSuccess()
         } catch let apiError as APIError {
             errorMessage = apiError.localizedDescription
@@ -135,7 +167,7 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
 
         isLoading = false
     }
-    
+
     func skipOnboarding(onSuccess: @escaping () -> Void) async {
         isLoading = true
         errorMessage = nil

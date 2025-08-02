@@ -9,18 +9,13 @@ struct RecordingModalView: View {
     
     var body: some View {
         ZStack {
-            Color("background2Color").ignoresSafeArea()
+            Color("Surface").ignoresSafeArea()
             
             VStack(spacing: 20) {
-                Capsule()
-                    .fill(Color.white.opacity(0.6))
-                    .frame(width: 40, height: 6)
-                    .padding(.top, 20)
-
                 Text(statusText)
                     .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.top, 10)
+                    .foregroundColor(Color("TextSecondary")) // ✅ theme text
+                    .padding(.top, 30)
 
                 transcriptSection
 
@@ -46,13 +41,13 @@ struct RecordingModalView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Please enable microphone access in Settings → Privacy → Speech Recognition & Microphone.")
+                .foregroundColor(Color("TextPrimary")) // ✅ theme text
         }
         
         // 🔹 Custom Permission Modal Overlay
         .overlay {
             if showPrePrompt {
                 ZStack {
-                    // Dimmed black background
                     Color.black.opacity(0.9)
                         .ignoresSafeArea()
                         .onTapGesture {
@@ -62,11 +57,11 @@ struct RecordingModalView: View {
                     VStack(spacing: 24) {
                         Text("We need your permission 🎙️")
                             .font(.title2).bold()
-                            .foregroundColor(.white)
+                            .foregroundColor(Color("TextPrimary")) // ✅ theme
 
                         Text("To transcribe your voice into text, the app requires access to your microphone and speech recognition.")
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(Color("TextSecondary")) // ✅ theme
                             .padding(.horizontal)
 
                         Button("Continue") {
@@ -80,22 +75,22 @@ struct RecordingModalView: View {
                             }
                         }
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(Color("TextPrimary")) // ✅ theme
                         .padding()
                         .frame(maxWidth: .infinity)
-                        .background(Color.white)
+                        .background(Color("Primary"))
                         .cornerRadius(12)
                         .padding(.horizontal, 40)
 
                         Button("Not Now", role: .cancel) {
                             showPrePrompt = false
                         }
-                        .foregroundColor(.gray)
+                        .foregroundColor(Color("TextSecondary")) // ✅ theme
                     }
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color("background2Color"))
+                            .fill(Color("Surface"))
                             .shadow(color: .black.opacity(0.5), radius: 10)
                     )
                     .padding(40)
@@ -124,8 +119,8 @@ struct RecordingModalView: View {
                 .scrollContentBackground(.hidden)
                 .padding()
                 .frame(maxHeight: 300)
-                .background(Color("background2Color"))
-                .foregroundColor(.white)
+                .background(Color("Surface"))
+                .foregroundColor(Color("TextPrimary")) // ✅ theme
                 .cornerRadius(12)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
@@ -136,7 +131,7 @@ struct RecordingModalView: View {
             ScrollView {
                 Text(viewModel.transcription.isEmpty ? "Listening..." : viewModel.transcription)
                     .font(.body)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("TextPrimary")) // ✅ theme
                     .padding()
             }
             .frame(maxHeight: 300)
@@ -151,7 +146,7 @@ struct RecordingModalView: View {
             recordButton(icon: "mic.fill", color: .green) {
                 let status = viewModel.currentPermissionStatus()
                 if status == .notDetermined {
-                    showPrePrompt = true   // 🚨 open custom modal
+                    showPrePrompt = true
                 } else {
                     viewModel.requestPermissionIfNeeded { granted in
                         if granted {
@@ -189,7 +184,7 @@ struct RecordingModalView: View {
         ZStack {
             if viewModel.state == .recording {
                 Circle()
-                    .fill(color.opacity(0.3))
+                    .fill(color.opacity(0.25))
                     .frame(width: 140, height: 140)
                     .scaleEffect(isPulsing ? 1.3 : 1.0)
                     .animation(
@@ -201,12 +196,12 @@ struct RecordingModalView: View {
             Button(action: action) {
                 Image(systemName: icon)
                     .font(.system(size: 40))
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("TextPrimary")) // ✅ theme
                     .padding(40)
                     .background(
                         Circle()
                             .fill(color)
-                            .shadow(color: .white.opacity(0.8), radius: 15)
+                            .shadow(color: Color("Primary").opacity(0.5), radius: 12) // ✅ theme glow
                     )
             }
         }
@@ -219,12 +214,12 @@ struct RecordingModalView: View {
         } label: {
             Image(systemName: "stop.fill")
                 .font(.system(size: 22))
-                .foregroundColor(.white)
+                .foregroundColor(Color("TextPrimary")) // ✅ theme
                 .padding(18)
                 .background(
                     Circle()
                         .fill(Color.red)
-                        .shadow(color: .white.opacity(0.6), radius: 8)
+                        .shadow(color: Color("Primary").opacity(0.5), radius: 10) // ✅ theme glow
                 )
         }
     }
@@ -239,12 +234,12 @@ struct RecordingModalView: View {
             } label: {
                 Text("Submit Transcript")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color("TextPrimary")) // ✅ theme
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.white)
+                    .background(Color("Primary"))
                     .cornerRadius(12)
-                    .shadow(color: .white.opacity(0.4), radius: 5)
+                    .shadow(color: Color("Primary").opacity(0.4), radius: 5)
             }
             .padding(.horizontal, 40)
             
@@ -253,17 +248,22 @@ struct RecordingModalView: View {
             } label: {
                 Text("Cancel")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("TextSecondary")) // ✅ theme
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.white.opacity(0.1))
+                    .background(Color.white.opacity(0.05))
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
                     )
             }
             .padding(.horizontal, 40)
         }
     }
+}
+
+#Preview {
+    RecordingModalView(isPresented: .constant(true))
+        .environment(\.colorScheme, .light) // 👈 test .light / .dark
 }

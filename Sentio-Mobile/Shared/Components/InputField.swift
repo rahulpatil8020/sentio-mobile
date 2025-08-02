@@ -1,3 +1,10 @@
+//
+//  InputField.swift
+//  Sentio-Mobile
+//
+//  Created by Rahul Patil on 7/29/25.
+//
+
 import SwiftUI
 
 struct InputField: View {
@@ -10,21 +17,25 @@ struct InputField: View {
         ZStack(alignment: .topTrailing) {
             HStack {
                 Image(systemName: systemImage)
-                    .foregroundColor(.gray)
+                    .foregroundColor(Color("TextSecondary"))
+                
                 TextField(placeholder, text: $text)
                     .textFieldStyle(.plain)
                     .autocapitalization(.none)
+                    .foregroundColor(Color("TextPrimary"))
             }
             .padding()
+            .background(Color("SurfaceSecondary"))
+            .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+                    .stroke(Color("TextSecondary").opacity(0.3), lineWidth: 1)
             )
 
             if let limit = characterLimit {
                 Text("\(text.count)/\(limit)")
                     .font(.caption2)
-                    .foregroundColor(text.count < 2 ? .orange : .gray)
+                    .foregroundColor(text.count > limit ? .orange : Color("TextSecondary"))
                     .padding(.top, 6)
                     .padding(.trailing, 12)
             }
@@ -33,11 +44,21 @@ struct InputField: View {
 }
 
 #Preview {
-    InputField(
-        placeholder: "Enter your profession",
-        text: .constant("Developer"),
-        systemImage: "briefcase.fill",
-        characterLimit: 100
-    )
+    VStack(spacing: 20) {
+        InputField(
+            placeholder: "Enter your name",
+            text: .constant("Rahul"),
+            systemImage: "person.fill"
+        )
+
+        InputField(
+            placeholder: "Enter your profession",
+            text: .constant("Developer"),
+            systemImage: "briefcase.fill",
+            characterLimit: 15
+        )
+    }
     .padding()
+    .background(Color("Background").ignoresSafeArea())
+    .environment(\.colorScheme, .dark) // 🔹 Try toggling to .light
 }

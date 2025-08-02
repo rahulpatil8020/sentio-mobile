@@ -106,8 +106,12 @@ final class APIClient {
 
             let refreshResponse = try JSONDecoder().decode(RefreshResponse.self, from: data)
             TokenManager.shared.accessToken = refreshResponse.accessToken
+            if let newRefreshToken = refreshResponse.refreshToken {
+                TokenManager.shared.refreshToken = newRefreshToken
+            }
             return true
         } catch {
+            print("Refresh Failed", error.localizedDescription)
             return false
         }
     }
@@ -128,4 +132,5 @@ struct ServerErrorDetail: Decodable {
 // MARK: - Refresh Response
 struct RefreshResponse: Decodable {
     let accessToken: String
+    let refreshToken: String?
 }

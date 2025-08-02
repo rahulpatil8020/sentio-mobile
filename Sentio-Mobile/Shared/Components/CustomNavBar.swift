@@ -1,47 +1,40 @@
 import SwiftUI
 
-// 🔹 Custom shape with a circular notch in the middle
 struct CircularNotchedBarShape: Shape {
-    var notchRadius: CGFloat = 50       // radius of the circular cutout
-    var smoothness: CGFloat = 12        // shoulder roundness (1 param, both sides)
+    var notchFraction: CGFloat = 0.10   // fraction of width for notch radius
+    var smoothness: CGFloat = 6         // shoulder curve
     
     func path(in rect: CGRect) -> Path {
+        let notchRadius = rect.width * notchFraction
         let notchCenterX = rect.midX
-        let notchCenterY: CGFloat = 0   // top edge of the bar
+        let notchCenterY: CGFloat = 0
         
         var path = Path()
-        
-        // Start at bottom-left
         path.move(to: CGPoint(x: 0, y: 0))
         
-        // Left straight edge → shoulder start
+        // Left shoulder
         path.addLine(to: CGPoint(x: notchCenterX - notchRadius - smoothness, y: 0))
-        
-        // Left shoulder curve
         path.addQuadCurve(
             to: CGPoint(x: notchCenterX - notchRadius, y: smoothness),
             control: CGPoint(x: notchCenterX - notchRadius, y: 0)
         )
         
-        // Arc (notch cutout)
+        // Notch arc
         path.addArc(
             center: CGPoint(x: notchCenterX, y: notchCenterY),
             radius: notchRadius,
-            startAngle: .degrees(180),
-            endAngle: .degrees(15),
+            startAngle: .degrees(168),
+            endAngle: .degrees(12),
             clockwise: true
         )
         
-        // Right shoulder curve (mirror of left)
+        // Right shoulder
         path.addQuadCurve(
             to: CGPoint(x: notchCenterX + notchRadius + smoothness, y: 0),
             control: CGPoint(x: notchCenterX + notchRadius, y: 0)
         )
         
-        // Continue flat → right edge
         path.addLine(to: CGPoint(x: rect.width, y: 0))
-        
-        // Close rest of bar
         path.addLine(to: CGPoint(x: rect.width, y: rect.height))
         path.addLine(to: CGPoint(x: 0, y: rect.height))
         path.closeSubpath()
@@ -52,54 +45,60 @@ struct CircularNotchedBarShape: Shape {
 
 struct CustomNavBar: View {
     @Binding var selectedTab: String
-    @State private var showRecording = false   // 🔹 controls modal
+    @State private var showRecording = false
     
     var body: some View {
-        ZStack {
-            CircularNotchedBarShape()
-                .fill(Color("backgroundColor"))
-                .frame(height: 70)
-                .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: -2)
+        GeometryReader { geo in
+            let barHeight: CGFloat = 70
+            let notchRadius = geo.size.width * 0.12
             
-            // 🔹 Mic button in notch
-            Button(action: {
-                showRecording = true   // open modal
-            }) {
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.white)
-                    .padding(28)
-                    .background(
-                        Circle()
-                            .fill(Color.black)
-                            .shadow(color: .black.opacity(0.8), radius: 20, x: 0, y: 10)
-                    )
-            }
-            .offset(y: -35)
-            .sheet(isPresented: $showRecording) {
-                RecordingModalView(isPresented: $showRecording) // 🔹 your modal
-            }
-            
-            // 🔹 Side icons
-            HStack {
-                Button(action: { selectedTab = "home" }) {
-                    Image(systemName: selectedTab == "home" ? "house.fill" : "house")
-                        .font(.system(size: 28))
-                        .foregroundColor(.white.opacity(0.9))
+            ZStack {
+                // Background bar
+                CircularNotchedBarShape()
+                    .fill(Color("Surface"))
+                    .frame(height: barHeight)
+                    .elevation(.medium)
+                
+                // Mic button
+                Button(action: { showRecording = true }) {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: notchRadius * 0.8))
+                        .foregroundColor(Color("TextPrimary"))
+                        .padding(notchRadius * 0.4)
+                        .background(
+                            Circle()
+                                .fill(Color("Surface"))
+                                .elevation(.high)
+                        )
+                        .contentShape(Circle())
+                }
+                .offset(y: -(notchRadius * 0.8))
+                .sheet(isPresented: $showRecording) {
+                    RecordingModalView(isPresented: $showRecording)
                 }
                 
-                Spacer()
-                
-                Button(action: { selectedTab = "notifications" }) {
-                    Image(systemName: selectedTab == "notifications" ? "bell.fill" : "bell")
-                        .font(.system(size: 28))
-                        .foregroundColor(.white.opacity(0.9))
+                // Side icons
+                HStack {
+                    Button(action: { selectedTab = "home" }) {
+                        Image(systemName: selectedTab == "home" ? "house.fill" : "house")
+                            .font(.system(size: 28))
+                            .foregroundColor(Color("TextPrimary").opacity(0.9))
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: { selectedTab = "notifications" }) {
+                        Image(systemName: selectedTab == "notifications" ? "bell.fill" : "bell")
+                            .font(.system(size: 28))
+                            .foregroundColor(Color("TextPrimary").opacity(0.9))
+                    }
                 }
+                .padding(.horizontal, geo.size.width * 0.18)
+                .padding(.bottom, geo.safeAreaInsets.bottom == 0 ? 10 : geo.safeAreaInsets.bottom)
             }
-            .padding(.horizontal, 60)
-            .padding(.bottom, 10)
+            .frame(width: geo.size.width, height: barHeight)
         }
-        .frame(maxWidth: .infinity, maxHeight: 70)
+        .frame(height: 70)
     }
 }
 
@@ -108,6 +107,7 @@ struct CustomNavBar: View {
         Spacer()
         CustomNavBar(selectedTab: .constant("home"))
     }
-    .background(Color.gray.opacity(0.2))
+    .background(Color("Background"))
     .ignoresSafeArea()
+    .preferredColorScheme(.light)   // 👈 switch between .light / .dark
 }

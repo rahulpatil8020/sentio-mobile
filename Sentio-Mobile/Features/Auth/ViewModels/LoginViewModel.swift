@@ -23,6 +23,7 @@ final class LoginViewModel: ObservableObject {
 
             TokenManager.shared.accessToken = response.data.accessToken
             TokenManager.shared.refreshToken = response.data.refreshToken
+            UserManager.shared.saveUser(response.data.user)
             AppState.shared.currentUser = response.data.user
             AppState.shared.isLoggedIn = true
         } catch let serverError as ServerErrorResponse {
