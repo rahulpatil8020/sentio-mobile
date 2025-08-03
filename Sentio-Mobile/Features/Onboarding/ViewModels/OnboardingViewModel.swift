@@ -61,6 +61,30 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
         }
     }
 
+    // MARK: - Goal Icons
+    func icon(for goal: String) -> String {
+        switch goal {
+        case "Improve mental health":
+            return "brain.head.profile"
+        case "Build physical fitness":
+            return "figure.strengthtraining.traditional"
+        case "Advance in career/education":
+            return "graduationcap"
+        case "Strengthen relationships":
+            return "person.2.fill"
+        case "Enhance mindfulness":
+            return "sparkles"
+        case "Achieve financial stability":
+            return "banknote"
+        case "Personal growth & learning":
+            return "book.fill"
+        case "Enjoy hobbies & leisure":
+            return "gamecontroller.fill"
+        default:
+            return "checkmark.circle"
+        }
+    }
+
     // MARK: - Location
     func requestLocation() {
         isLoadingLocation = true
@@ -97,7 +121,7 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
             break
         }
     }
-    
+
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.first else { return }
 
@@ -119,6 +143,7 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
             self.locationDenied = true
         }
     }
+
     // MARK: - Submit
     func submitOnboarding(onSuccess: @escaping () -> Void) async {
         city = cleaned(city)
@@ -157,7 +182,7 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
                 requiresAuth: true
             )
 
-            AppState.shared.currentUser = response.data.user
+            AppState.shared.setUser(response.data.user)
             onSuccess()
         } catch let apiError as APIError {
             errorMessage = apiError.localizedDescription
@@ -180,7 +205,7 @@ final class OnboardingViewModel: NSObject, ObservableObject, CLLocationManagerDe
                 body: emptyPayload,
                 requiresAuth: true
             )
-            AppState.shared.currentUser = response.data.user
+            AppState.shared.setUser(response.data.user)
             onSuccess()
         } catch let apiError as APIError {
             errorMessage = apiError.localizedDescription

@@ -37,6 +37,27 @@ struct MainView: View {
 }
 
 #Preview {
-    MainView()
-        .environment(\.colorScheme, .dark)   // 👈 Preview dark mode
+    struct MainViewPreview: View {
+        init() {
+            // Inject a mock user into AppState for preview
+            AppState.shared.currentUser = User(
+                id: "123",
+                name: "Rahul Patil",
+                email: "rahul@example.com",
+                createdAt: "2025-08-02T12:00:00Z",
+                isOnboarded: true,
+                city: "San Francisco",
+                country: "USA",
+                profession: "Software Engineer",
+                goals: ["Personal growth", "Fitness"]
+            )
+        }
+        
+        var body: some View {
+            MainView()
+                .environment(\.colorScheme, .dark) // 👈 Dark mode
+        }
+    }
+    
+    return MainViewPreview()
 }

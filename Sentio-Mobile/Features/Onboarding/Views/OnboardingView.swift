@@ -62,7 +62,6 @@ struct OnboardingView: View {
                                     .font(.subheadline)
                                     .foregroundColor(Color("Primary"))
                                 }
-                                // 👇 Loader shown under fields (instead of replacing them)
                                 if vm.isLoadingLocation {
                                     ProgressView("Fetching location...")
                                         .font(.caption)
@@ -96,11 +95,15 @@ struct OnboardingView: View {
 
                                 VStack(alignment: .leading, spacing: 10) {
                                     ForEach(vm.availableGoals, id: \.self) { goal in
-                                        Toggle(goal, isOn: Binding(
-                                            get: { vm.selectedGoals.contains(goal) },
-                                            set: { isSelected in vm.toggleGoal(goal) }
-                                        ))
-                                        .tint(Color("Primary"))
+                                        HStack {
+                                            Image(systemName: vm.icon(for: goal))
+                                                .foregroundColor(Color("Primary"))
+                                            Toggle(goal, isOn: Binding(
+                                                get: { vm.selectedGoals.contains(goal) },
+                                                set: { isSelected in vm.toggleGoal(goal) }
+                                            ))
+                                            .tint(Color("Primary"))
+                                        }
                                     }
 
                                     InputField(
@@ -151,7 +154,6 @@ struct OnboardingView: View {
                         .shadow(color: Color("Primary").opacity(0.5), radius: 10)
                 }
             }
-            // 🔹 Top-right Skip button
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {

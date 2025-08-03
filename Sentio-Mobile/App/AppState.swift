@@ -7,10 +7,11 @@ final class AppState: ObservableObject {
 
     @Published var isLoggedIn: Bool
     @Published var currentUser: User?
+    @Published var selectedDate: Date
 
     private init() {
         self.isLoggedIn = TokenManager.shared.accessToken != nil
-
+        self.selectedDate = Calendar.current.startOfDay(for: Date())
         if isLoggedIn {
             self.currentUser = UserManager.shared.loadUser()
             Task {

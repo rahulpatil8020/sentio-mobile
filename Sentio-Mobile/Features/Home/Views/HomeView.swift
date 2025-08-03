@@ -3,55 +3,104 @@ import SwiftUI
 struct HomeView: View {
     @ObservedObject private var appState = AppState.shared
     
-    var unreadCount: Int = 0
-    
     var body: some View {
-        VStack(spacing: 20) {
-            // Profile Avatar
-            HStack {
-                ZStack {
-                    // Background circle
-                    Circle()
-                        .fill(LinearGradient(
-                            gradient: Gradient(colors: [Color.blue, Color.purple]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
-                        .frame(width: 80, height: 80)
-                        .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 3)
-                    
-                    // Profile symbol
-                    Image(systemName: "person.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 40, height: 40)
-                        .foregroundColor(.white)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                
+                // 1. Header
+                if let user = appState.currentUser {
+                    HeaderView(user: user)
                 }
-                .overlay(
-                    Circle()
-                        .stroke(Color.white, lineWidth: 3) // border
-                )
+                
+                // 2. Date Selector
+                DateSelectorView(selectedDate: $appState.selectedDate)
+
+                // 3. Journal Card
+                Rectangle()
+                    .fill(Color("Surface"))
+                    .frame(height: 60)
+                    .cornerRadius(12)
+                    .overlay(
+                        Text("Journal Card Placeholder")
+                            .foregroundColor(Color("TextSecondary"))
+                    )
+                
+                // 4. Habit + Emotion Row
+                HStack(spacing: 16) {
+                    Rectangle()
+                        .fill(Color("Surface"))
+                        .frame(height: 120)
+                        .cornerRadius(12)
+                        .overlay(
+                            Text("Habit Card")
+                                .foregroundColor(Color("TextSecondary"))
+                        )
+                    
+                    Rectangle()
+                        .fill(Color("Surface"))
+                        .frame(height: 120)
+                        .cornerRadius(12)
+                        .overlay(
+                            Text("Emotion Card")
+                                .foregroundColor(Color("TextSecondary"))
+                        )
+                }
+                
+                // 5. Task List
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Task List")
+                            .font(.headline)
+                            .foregroundColor(Color("TextPrimary"))
+                        Spacer()
+                        Circle()
+                            .fill(Color("SurfaceSecondary"))
+                            .frame(width: 30, height: 30)
+                            .overlay(
+                                Text("+")
+                                    .foregroundColor(.white)
+                                    .fontWeight(.bold)
+                            )
+                    }
+                    
+                    Rectangle()
+                        .fill(Color("Surface"))
+                        .frame(height: 150)
+                        .cornerRadius(12)
+                        .overlay(
+                            Text("Task List Placeholder")
+                                .foregroundColor(Color("TextSecondary"))
+                        )
+                }
             }
-            
-            // 🚪 Logout Button
-            Button(action: {
-                appState.logout() // 👈 directly call your existing logout
-            }) {
-                Text("Logout")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.red)
-                    .cornerRadius(10)
-                    .shadow(color: .red.opacity(0.3), radius: 5, x: 0, y: 3)
-            }
-            .padding(.horizontal, 40)
+            .padding()
         }
+        .background(Color("Background").ignoresSafeArea())
     }
 }
 
 #Preview {
-    HomeView()
+    struct HomeViewPreview: View {
+        init() {
+            // Inject a mock user into AppState for preview
+            AppState.shared.currentUser = User(
+                id: "123",
+                name: "Rahul Patil",
+                email: "rahul@example.com",
+                createdAt: "2025-08-02T12:00:00Z",
+                isOnboarded: true,
+                city: "San Francisco",
+                country: "USA",
+                profession: "Software Engineer",
+                goals: ["Personal growth", "Fitness"]
+            )
+        }
+        
+        var body: some View {
+            HomeView()
+                .environment(\.colorScheme, .dark) // 👈 Preview in dark mode
+        }
+    }
+    
+    return HomeViewPreview()
 }
