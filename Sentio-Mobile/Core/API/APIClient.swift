@@ -43,6 +43,8 @@ final class APIClient {
         var urlRequest = URLRequest(url: baseURL.appendingPathComponent(endpoint))
         urlRequest.httpMethod = method
         urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        let timezone = TimeZone.current.identifier
+        urlRequest.addValue(timezone, forHTTPHeaderField: "X-Timezone")
         if requiresAuth, let token = TokenManager.shared.accessToken {
             urlRequest.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }

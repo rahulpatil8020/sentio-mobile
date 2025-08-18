@@ -8,6 +8,6 @@
 import Foundation
 
 enum Constants {
-    static let baseURL = "http://10.0.0.123:8000/api/v1" // 🔥 Replace with your actual backend URL
+    static let baseURL = "http://192.168.29.210:8000/api/v1" // 🔥 Replace with your actual backend URL
     static let timeoutInterval: TimeInterval = 30 // seconds
 }

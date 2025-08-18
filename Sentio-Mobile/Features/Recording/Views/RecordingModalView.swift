@@ -9,7 +9,7 @@ struct RecordingModalView: View {
     
     var body: some View {
         ZStack {
-            Color("Surface").ignoresSafeArea()
+            Color("Background").ignoresSafeArea()
             
             VStack(spacing: 20) {
                 Text(statusText)
@@ -143,7 +143,7 @@ struct RecordingModalView: View {
     private var controlsSection: some View {
         switch viewModel.state {
         case .idle:
-            recordButton(icon: "mic.fill", color: .green) {
+            recordButton(icon: "mic.fill", color: Color("Surface")) {
                 let status = viewModel.currentPermissionStatus()
                 if status == .notDetermined {
                     showPrePrompt = true
@@ -159,7 +159,7 @@ struct RecordingModalView: View {
             }
             
         case .recording:
-            recordButton(icon: "pause.fill", color: .yellow) {
+            recordButton(icon: "pause.fill", color: Color("Surface")) {
                 viewModel.pauseRecording()
             }
             
@@ -197,11 +197,11 @@ struct RecordingModalView: View {
                 Image(systemName: icon)
                     .font(.system(size: 40))
                     .foregroundColor(Color("TextPrimary")) // ✅ theme
-                    .padding(40)
+                    .padding(30)
                     .background(
                         Circle()
                             .fill(color)
-                            .shadow(color: Color("Primary").opacity(0.5), radius: 12) // ✅ theme glow
+                            .shadow(color: Color("SurfaceSecondary").opacity(0.5), radius: 5)
                     )
             }
         }
@@ -265,5 +265,5 @@ struct RecordingModalView: View {
 
 #Preview {
     RecordingModalView(isPresented: .constant(true))
-        .environment(\.colorScheme, .light) // 👈 test .light / .dark
+        .environment(\.colorScheme, .dark) // 👈 test .light / .dark
 }
