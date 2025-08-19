@@ -8,6 +8,8 @@ final class AppState: ObservableObject {
     @Published var isLoggedIn: Bool
     @Published var currentUser: User?
     @Published var selectedDate: Date
+    @Published var isProcessingTranscript: Bool = false
+    @Published var lastJournalSnippet: String = "Something"
 
     private init() {
         self.isLoggedIn = TokenManager.shared.accessToken != nil

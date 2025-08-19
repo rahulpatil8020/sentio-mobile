@@ -2,29 +2,25 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject private var appState = AppState.shared
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                
+
                 // 1. Header
                 if let user = appState.currentUser {
                     HeaderView(user: user)
                 }
-                
+
                 // 2. Date Selector
                 DateSelectorView(selectedDate: $appState.selectedDate)
 
-                // 3. Journal Card
-                Rectangle()
-                    .fill(Color("Surface"))
-                    .frame(height: 60)
-                    .cornerRadius(12)
-                    .overlay(
-                        Text("Journal Card Placeholder")
-                            .foregroundColor(Color("TextSecondary"))
-                    )
-                
+                // 3. Journal Card (reactive)
+                JournalCard(
+                    isProcessing: appState.isProcessingTranscript,
+                    lastEntry: appState.lastJournalSnippet // <- optional string you populate
+                )
+
                 // 4. Habit + Emotion Row
                 HStack(spacing: 16) {
                     Rectangle()
@@ -35,7 +31,7 @@ struct HomeView: View {
                             Text("Habit Card")
                                 .foregroundColor(Color("TextSecondary"))
                         )
-                    
+
                     Rectangle()
                         .fill(Color("Surface"))
                         .frame(height: 120)
@@ -45,7 +41,7 @@ struct HomeView: View {
                                 .foregroundColor(Color("TextSecondary"))
                         )
                 }
-                
+
                 // 5. Task List
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -62,7 +58,7 @@ struct HomeView: View {
                                     .fontWeight(.bold)
                             )
                     }
-                    
+
                     Rectangle()
                         .fill(Color("Surface"))
                         .frame(height: 150)
@@ -78,7 +74,6 @@ struct HomeView: View {
         .background(Color("Background").ignoresSafeArea())
     }
 }
-
 #Preview {
     struct HomeViewPreview: View {
         init() {

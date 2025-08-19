@@ -6,7 +6,7 @@ enum RecordingState {
     case idle
     case recording
     case paused
-    case finished
+    // case finished
 }
 
 class RecordingViewModel: ObservableObject {
@@ -14,8 +14,11 @@ class RecordingViewModel: ObservableObject {
     @Published var state: RecordingState = .idle
     
     private let speechService = SpeechService()
-    
-    init() {
+    private let appState: AppState
+
+    init(appState: AppState = .shared) {
+        self.appState = appState
+
         // Bind SpeechService transcription updates
         speechService.$transcription
             .receive(on: DispatchQueue.main)
@@ -24,12 +27,11 @@ class RecordingViewModel: ObservableObject {
     
     // MARK: - Permission Handling
     func currentPermissionStatus() -> SFSpeechRecognizerAuthorizationStatus {
-        return SFSpeechRecognizer.authorizationStatus()
+        SFSpeechRecognizer.authorizationStatus()
     }
     
     func requestPermissionIfNeeded(completion: @escaping (Bool) -> Void) {
         let status = currentPermissionStatus()
-        
         switch status {
         case .authorized:
             completion(true)
@@ -72,29 +74,43 @@ class RecordingViewModel: ObservableObject {
     
     func stopRecording() {
         speechService.stopRecording()
-        state = .finished
+        // state = .finished
+        // We’re skipping the finished step for now
     }
     
-    // MARK: - Submit Transcript
-    func submitTranscript(completion: @escaping () -> Void) {
-        Task {
+    // MARK: - Submit (non-blocking)
+    /// Kicks off the submit and returns immediately.
+    func submitTranscript() {
+        let text = transcription.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            // Nothing to send, flip off just in case
+            DispatchQueue.main.async { self.appState.isProcessingTranscript = false }
+            return
+        }
+
+        // Show global loader
+        DispatchQueue.main.async { self.appState.isProcessingTranscript = true }
+
+        // Fire-and-forget so the UI can dismiss right away
+        Task.detached {
             do {
-                let payload = ["transcript": transcription]
+                let payload = ["transcript": text]
                 let body = try JSONEncoder().encode(payload)
-                
-                // Send transcript to backend
+
+                // Send transcript to backend (auth required)
                 let _: EmptyResponse = try await APIClient.shared.request(
                     endpoint: "/transcript",
                     method: "POST",
                     body: body,
                     requiresAuth: true
                 )
-                
-                DispatchQueue.main.async {
-                    completion()
-                }
             } catch {
                 print("❌ Failed to submit transcript:", error.localizedDescription)
+            }
+
+            // Always hide loader when done
+            DispatchQueue.main.async {
+                self.appState.isProcessingTranscript = false
             }
         }
     }
