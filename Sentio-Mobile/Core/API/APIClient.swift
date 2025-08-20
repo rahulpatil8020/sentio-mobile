@@ -99,6 +99,7 @@ final class APIClient {
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONEncoder().encode(["refreshToken": refreshToken])
+        
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)

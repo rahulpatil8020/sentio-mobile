@@ -1,104 +1,52 @@
 
-
 import Foundation
 
 @MainActor
 final class HomeViewModel: ObservableObject {
-    // MARK: - Published Properties
-    @Published var habits: [Habit] = []
-    @Published var todos: [Todo] = []
-    @Published var reminders: [Reminder] = []
-    @Published var emotionalState: EmotionalState?
-    @Published var user: User?
-    
-    @Published var pastHabits: [Habit] = []
-    @Published var pastTodos: [Todo] = []
-    @Published var pastReminders: [Reminder] = []
-    @Published var pastEmotions: [EmotionalState] = []
-    @Published var notifications: [NotificationItem] = []
-    
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    static let shared = HomeViewModel()
+    private init() {}
 
-    // MARK: - Fetch Data
-    func fetchData() async {
-        isLoading = true
-        errorMessage = nil
+    func loadTodayIfNeeded() async {
+        let appState = AppState.shared
+        guard appState.today == nil else {
+            print("Today’s data already loaded")
+            appState.isHomeLoading = false // ✅ Also stop loading if already loaded
+            return
+        }
 
         do {
-            async let habitsResponse: [Habit] = APIClient.shared.request(endpoint: "/habits", requiresAuth: true)
-            async let todosResponse: [Todo] = APIClient.shared.request(endpoint: "/todos", requiresAuth: true)
-            async let remindersResponse: [Reminder] = APIClient.shared.request(endpoint: "/reminders", requiresAuth: true)
-            async let emotionResponse: EmotionalState = APIClient.shared.request(endpoint: "/emotional-state", requiresAuth: true)
-            async let userResponse: User = APIClient.shared.request(endpoint: "/user/profile", requiresAuth: true)
-            async let pastHabitsResponse: [Habit] = APIClient.shared.request(endpoint: "/habits/history", requiresAuth: true)
-            async let pastTodosResponse: [Todo] = APIClient.shared.request(endpoint: "/todos/history", requiresAuth: true)
-            async let pastRemindersResponse: [Reminder] = APIClient.shared.request(endpoint: "/reminders/history", requiresAuth: true)
-            async let pastEmotionsResponse: [EmotionalState] = APIClient.shared.request(endpoint: "/emotional-state/history", requiresAuth: true)
-            async let notificationsResponse: [NotificationItem] = APIClient.shared.request(endpoint: "/notifications", requiresAuth: true)
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            let dateString = formatter.string(from: appState.selectedDate)
+            let endpoint = "/daily-data/today?day=\(dateString)"
 
-            // Current data
-            habits = try await habitsResponse
-            todos = try await todosResponse
-            reminders = try await remindersResponse
-            emotionalState = try await emotionResponse
-            user = try await userResponse
+            let fullResponse: DailyDataFullResponse = try await APIClient.shared.request(
+                endpoint: endpoint,
+                requiresAuth: true
+            )
 
-            // Past data
-            pastHabits = try await pastHabitsResponse
-            pastTodos = try await pastTodosResponse
-            pastReminders = try await pastRemindersResponse
-            pastEmotions = try await pastEmotionsResponse
+            appState.habits = fullResponse.habits
+            appState.today = DailyDataResponse(
+                todos: fullResponse.todos,
+                upcomingReminders: fullResponse.upcomingReminders,
+                emotionalStates: fullResponse.emotionalStates,
+                transcripts: fullResponse.transcripts
+            )
+            appState.isHomeLoading = false // ✅ Stop loading
 
-            // Notifications
-            notifications = try await notificationsResponse
         } catch {
-            errorMessage = error.localizedDescription
+            print("Failed to load today’s data: \(error.localizedDescription)")
+            appState.isHomeLoading = false // ✅ Stop loading even on failure
+
         }
-        isLoading = false
-    }
-
-    // MARK: - Logout
-    func logout() {
-        TokenManager.shared.accessToken = nil
-        AppState.shared.isLoggedIn = false
     }
 }
-
-// MARK: - Models
-struct Habit: Decodable, Identifiable {
-    let id: String
-    let title: String
-    let description: String?
-    let frequency: String
-}
-
-struct Todo: Decodable, Identifiable {
-    let id: String
-    let title: String
-    let completed: Bool
-    let dueDate: String?
-    let priority: Int
-}
-
-struct Reminder: Decodable, Identifiable {
-    let id: String
-    let title: String
-    let remindAt: String
-}
-
-struct EmotionalState: Decodable, Identifiable {
-    let id: String
-    let state: String
-    let intensity: Int
-    let note: String
-    let date: String // ISO Date String for history
-}
-
-struct NotificationItem: Decodable, Identifiable {
-    let id: String
-    let title: String
-    let message: String
-    let date: String // ISO Date String
-    let isRead: Bool
+// Helper struct for full response including habits
+struct DailyDataFullResponse: Decodable {
+    let habits: [Habit]
+    let todos: [Todo]
+    let upcomingReminders: [Reminder]
+    let emotionalStates: [EmotionalState]
+    let transcripts: [Transcript]
 }

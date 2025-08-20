@@ -10,6 +10,8 @@ import SwiftUI
 struct MainView: View {
     @State private var selectedTab: String = "home"
     
+    @ObservedObject private var appState = AppState.shared
+
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
@@ -23,9 +25,14 @@ struct MainView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // 🔹 Background should always come from semantic color
             .background(Color("Background").ignoresSafeArea())
-            
+
+            if appState.isHomeLoading {
+                LoadingOverlayView()
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
+
             VStack {
                 Spacer()
                 CustomNavBar(selectedTab: $selectedTab)

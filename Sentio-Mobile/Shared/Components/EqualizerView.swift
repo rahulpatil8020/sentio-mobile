@@ -1,11 +1,11 @@
 import SwiftUI
 
 struct EqualizerView: View {
-    @State private var phases: [CGFloat] = [0.2, 0.5, 0.35, 0.75, 0.4]
+    @State private var phases: [CGFloat] = [0.2, 0.5, 0.35, 0.65, 0.4]
     private let timer = Timer.publish(every: 0.18, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             ForEach(0..<phases.count, id: \.self) { i in
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color("Primary"))
@@ -18,4 +18,21 @@ struct EqualizerView: View {
             }
         }
     }
+}
+
+#Preview {
+    EqualizerView()
+        .padding()
+        .background(Color("Background")) // Optional, use to see contrast
+        .previewLayout(.sizeThatFits)
+        .previewDisplayName("Equalizer Animation")
+}
+
+#Preview {
+    EqualizerView()
+        .padding()
+        .background(Color("Background"))
+        .environment(\.colorScheme, .dark)
+        .previewLayout(.sizeThatFits)
+        .previewDisplayName("Equalizer – Dark Mode")
 }

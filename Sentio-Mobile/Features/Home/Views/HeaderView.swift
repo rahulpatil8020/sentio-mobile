@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HeaderView: View {
     let user: User
+    let selectedDate: Date
 
     // Extract initials from full name
     private var initials: String {
@@ -14,6 +15,12 @@ struct HeaderView: View {
     private var firstName: String {
         return user.name.split(separator: " ").first.map { String($0) } ?? user.name
     }
+    
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM d"  // e.g. August 19
+        return formatter.string(from: selectedDate)
+    }
 
     var body: some View {
         HStack {
@@ -22,26 +29,30 @@ struct HeaderView: View {
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(Color("TextPrimary"))
-
+                
                 Text("How are you doing today?")
                     .font(.subheadline)
                     .foregroundColor(Color("TextSecondary"))
+                
+                Text(formattedDate)
+                    .font(.footnote)
+                    .foregroundColor(Color("TextSecondary"))
             }
-
+            
             Spacer()
-
+            
             ZStack {
                 Circle()
                     .fill(Color.blue.gradient)
                     .frame(width: 50, height: 50)
-
+                
                 Text(initials)
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(Color("Background"))
             }
         }
-        .padding()
+        .padding(.horizontal)
     }
 }
 
@@ -58,5 +69,5 @@ struct HeaderView: View {
         goals: ["Personal growth", "Fitness"]
     )
     
-    HeaderView(user: mockUser)
+    HeaderView(user: mockUser, selectedDate: Date())
 }

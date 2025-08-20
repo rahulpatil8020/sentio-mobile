@@ -12,7 +12,7 @@ struct JournalCard: View {
             if isProcessing {
                 HStack(spacing: 16) {
                     EqualizerView()
-                        .frame(width: 56, height: 56)
+                        .frame(width: 40, height: 40)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Processing your transcript…")
@@ -26,7 +26,7 @@ struct JournalCard: View {
 
                     Spacer()
                 }
-                .padding()
+                .padding(.horizontal)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             } else {
                 HStack(spacing: 12) {
@@ -44,15 +44,37 @@ struct JournalCard: View {
                         Text((lastEntry?.isEmpty == false ? lastEntry! : "No entry yet. Tap mic to add one."))
                             .font(.subheadline)
                             .foregroundColor(Color("TextSecondary"))
-                            .lineLimit(2)
+                            .lineLimit(1)
                     }
 
                     Spacer()
                 }
-                .padding()
+                .padding(.horizontal)
             }
         }
-        .frame(height: 80)
+        .frame(height: 66)
         .animation(.easeInOut(duration: 0.25), value: isProcessing)
+    }
+}
+
+#Preview {
+    Group {
+        // Preview when processing
+        JournalCard(isProcessing: true, lastEntry: nil)
+            .previewDisplayName("Processing State")
+            .padding()
+            .background(Color("Background"))
+
+        // Preview with last entry
+        JournalCard(isProcessing: false, lastEntry: "I had a really great day today. Felt peaceful.")
+            .previewDisplayName("With Last Entry")
+            .padding()
+            .background(Color("Background"))
+
+        // Preview with no entry
+        JournalCard(isProcessing: false, lastEntry: "")
+            .previewDisplayName("Empty Entry")
+            .padding()
+            .background(Color("Background"))
     }
 }
