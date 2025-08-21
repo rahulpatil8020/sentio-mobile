@@ -8,7 +8,7 @@ final class AppState: ObservableObject {
     @Published var currentUser: User?
     @Published var selectedDate: Date
     @Published var lastJournalSnippet: String?
-    @Published var isProcessingTranscript: Bool = true
+    @Published var isProcessingTranscript: Bool = false
     @Published var isHomeLoading: Bool
 
     @Published var habits: [Habit] = []

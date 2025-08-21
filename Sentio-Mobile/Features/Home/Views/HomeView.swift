@@ -3,74 +3,102 @@ import SwiftUI
 struct HomeView: View {
     @ObservedObject private var appState = AppState.shared
     @StateObject private var viewModel = HomeViewModel.shared
+    
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
 
     var body: some View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    
-                    // 1. Header
+
                     if let user = appState.currentUser {
                         HeaderView(user: user, selectedDate: appState.selectedDate)
                     }
-                    
-                    // 2. Date Selector
+
                     DateSelectorView(selectedDate: $appState.selectedDate)
-                    
-                    // 3. Journal Card (reactive)
+                
                     JournalCard(
                         isProcessing: appState.isProcessingTranscript,
-                        lastEntry: appState.lastJournalSnippet // <- optional string you populate
+                        lastEntry: appState.lastJournalSnippet
                     )
                     
-                    // 4. Habit + Emotion Row
-                    HStack(spacing: 16) {
-                        Rectangle()
-                            .fill(Color("Surface"))
-                            .frame(height: 120)
-                            .cornerRadius(12)
-                            .overlay(
-                                Text("Habit Card")
-                                    .foregroundColor(Color("TextSecondary"))
-                            )
-                        
-                        Rectangle()
-                            .fill(Color("Surface"))
-                            .frame(height: 120)
-                            .cornerRadius(12)
-                            .overlay(
-                                Text("Emotion Card")
-                                    .foregroundColor(Color("TextSecondary"))
-                            )
+                    LazyVGrid(columns: columns, alignment: .center, spacing: 16) {
+                        HabitCard(completed: 5, total: 8)
+
+                        EmotionGraphCard(emotionalStates: [
+                            EmotionalState(id: "1", state: "Angry", intensity: 8, note: "bad traffic", createdAt: Date().addingTimeInterval(-3600 * 6)),
+                            EmotionalState(id: "2", state: "Sad", intensity: 4, note: nil, createdAt: Date().addingTimeInterval(-3600 * 5)),
+                            EmotionalState(id: "3", state: "Calm", intensity: 6, note: nil, createdAt: Date().addingTimeInterval(-3600 * 4)),
+                            EmotionalState(id: "4", state: "Happy", intensity: 8, note: "got compliment", createdAt: Date().addingTimeInterval(-3600 * 2)),
+                        ])
                     }
-                    
-                    // 5. Task List
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Task List")
-                                .font(.headline)
-                                .foregroundColor(Color("TextPrimary"))
-                            Spacer()
-                            Circle()
-                                .fill(Color("SurfaceSecondary"))
-                                .frame(width: 30, height: 30)
-                                .overlay(
-                                    Text("+")
-                                        .foregroundColor(.white)
-                                        .fontWeight(.bold)
-                                )
-                        }
-                        
-                        Rectangle()
-                            .fill(Color("Surface"))
-                            .frame(height: 150)
-                            .cornerRadius(12)
-                            .overlay(
-                                Text("Task List Placeholder")
-                                    .foregroundColor(Color("TextSecondary"))
-                            )
-                    }
+                    TodoListCard(todos: [
+                        Todo(
+                            id: "todo1",
+                            title: "Finish journal entry",
+                            completed: false,
+                            dueDate: Date().addingTimeInterval(3600), // in 1 hour
+                            createdBy: "USER",
+                            createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
+                            priority: 2,
+                            completedAt: nil
+                        ),
+                        Todo(
+                            id: "todo2",
+                            title: "Read for 30 minutes",
+                            completed: true,
+                            dueDate: nil,
+                            createdBy: "AI",
+                            createdAt: Date().addingTimeInterval(-86400), // yesterday
+                            priority: 5,
+                            completedAt: Date().addingTimeInterval(-1800)
+                        ),
+                        Todo(
+                            id: "todo3",
+                            title: "Make Dinner",
+                            completed: false,
+                            dueDate: Date().addingTimeInterval(3600), // in 1 hour
+                            createdBy: "USER",
+                            createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
+                            priority: 4,
+                            completedAt: nil
+                        ),
+                        Todo(
+                            id: "todo4",
+                            title: "Code the block",
+                            completed: true,
+                            dueDate: nil,
+                            createdBy: "AI",
+                            createdAt: Date().addingTimeInterval(-86400), // yesterday
+                            priority: 8,
+                            completedAt: Date().addingTimeInterval(-1800)
+                        ),
+                        Todo(
+                            id: "todo5",
+                            title: "Make Anime figure",
+                            completed: false,
+                            dueDate: Date().addingTimeInterval(3600), // in 1 hour
+                            createdBy: "USER",
+                            createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
+                            priority: 2,
+                            completedAt: nil
+                        ),
+                        Todo(
+                            id: "todo6",
+                            title: "Clean Glasses",
+                            completed: true,
+                            dueDate: nil,
+                            createdBy: "AI",
+                            createdAt: Date().addingTimeInterval(-86400), // yesterday
+                            priority: 6,
+                            completedAt: Date().addingTimeInterval(-1800)
+                        )
+                    ])
                 }
                 .padding(.horizontal)
+                .padding(.bottom, 120)
             }
         .onAppear {
             Task {
@@ -78,6 +106,7 @@ struct HomeView: View {
             }
         }
         .background(Color("Background").ignoresSafeArea())
+        
     }
 }
 #Preview {

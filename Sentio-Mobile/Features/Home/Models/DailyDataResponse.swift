@@ -89,6 +89,46 @@ extension DailyDataResponse {
                 createdAt: Date().addingTimeInterval(-86400), // yesterday
                 priority: 5,
                 completedAt: Date().addingTimeInterval(-1800)
+            ),
+            Todo(
+                id: "todo3",
+                title: "Make Dinner",
+                completed: false,
+                dueDate: Date().addingTimeInterval(3600), // in 1 hour
+                createdBy: "USER",
+                createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
+                priority: 4,
+                completedAt: nil
+            ),
+            Todo(
+                id: "todo4",
+                title: "Code the block",
+                completed: true,
+                dueDate: nil,
+                createdBy: "AI",
+                createdAt: Date().addingTimeInterval(-86400), // yesterday
+                priority: 8,
+                completedAt: Date().addingTimeInterval(-1800)
+            ),
+            Todo(
+                id: "todo5",
+                title: "Make Anime figure",
+                completed: false,
+                dueDate: Date().addingTimeInterval(3600), // in 1 hour
+                createdBy: "USER",
+                createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
+                priority: 2,
+                completedAt: nil
+            ),
+            Todo(
+                id: "todo6",
+                title: "Clean Glasses",
+                completed: true,
+                dueDate: nil,
+                createdBy: "AI",
+                createdAt: Date().addingTimeInterval(-86400), // yesterday
+                priority: 6,
+                completedAt: Date().addingTimeInterval(-1800)
             )
         ],
         upcomingReminders: [
