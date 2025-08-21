@@ -3,7 +3,6 @@ import SwiftUI
 struct HomeView: View {
     @ObservedObject private var appState = AppState.shared
     @StateObject private var viewModel = HomeViewModel.shared
-    
     private let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)

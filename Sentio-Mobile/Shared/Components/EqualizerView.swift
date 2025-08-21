@@ -14,7 +14,7 @@ struct EqualizerView: View {
         }
         .onReceive(timer) { _ in
             withAnimation(.easeInOut(duration: 0.18)) {
-                phases = phases.map { _ in .random(in: 0.2...0.9) }
+                phases = phases.map { _ in .random(in: 0.2...0.5) }
             }
         }
     }

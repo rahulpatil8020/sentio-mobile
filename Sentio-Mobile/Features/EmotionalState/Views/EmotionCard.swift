@@ -1,7 +1,11 @@
 import SwiftUI
 
+import SwiftUI
+
 struct EmotionGraphCard: View {
     let emotionalStates: [EmotionalState]
+
+    @State private var showDetails = false
 
     private let emotionLevelMap: [String: Int] = [
         "angry": 0, "apathetic": 1, "depressed": 2, "sad": 3,
@@ -16,135 +20,146 @@ struct EmotionGraphCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let latest = latestEmotion {
-                VStack(alignment: .leading){
-                    Text("Emotional Insight")
-                        .font(.headline)
-                        .foregroundColor(Color("TextPrimary"))
-                    if emotionalStates.count != 1 {
-                        Text(latest.state.capitalized)
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+        Button {
+            if !emotionalStates.isEmpty { showDetails = true }
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                if let latest = latestEmotion {
+                    VStack(alignment: .leading){
+                        Text("Emotional Insight")
+                            .font(.headline)
                             .foregroundColor(Color("TextPrimary"))
+                        if emotionalStates.count != 1 {
+                            Text(latest.state.capitalized)
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color("TextPrimary"))
+                        }
                     }
-
                 }
-            }
 
-            GeometryReader { geo in
-                if emotionalStates.isEmpty {
-                    Text("No emotions today.")
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .foregroundColor(Color("TextSecondary"))
+                GeometryReader { geo in
+                    if emotionalStates.isEmpty {
+                        Text("No emotions today.")
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .foregroundColor(Color("TextSecondary"))
+                            .background(Color("Surface"))
+                            .cornerRadius(12)
+                            .transition(.opacity)
+                    } else if emotionalStates.count == 1, let state = emotionalStates.first {
+                        // Single-state summary
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 12) {
+                                Text(emojiOrSymbol(for: state.state))
+                                    .font(.system(size: 32))
+                                Text(state.state.capitalized)
+                                    .font(.title2.bold())
+                                    .foregroundColor(Color("TextPrimary"))
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Intensity")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                ProgressView(value: Double(state.intensity), total: 10)
+                                    .tint(emotionColor(for: state))
+                            }
+
+                            if let note = state.note, !note.isEmpty {
+                                Text("“\(note)”")
+                                    .font(.body.italic())
+                                    .foregroundColor(Color("TextSecondary"))
+                            }
+                            Spacer()
+                        }
+                        .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
                         .background(Color("Surface"))
                         .cornerRadius(12)
                         .transition(.opacity)
-                } else if emotionalStates.count == 1, let state = emotionalStates.first {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 12) {
-                            Text(emojiOrSymbol(for: state.state))
-                                .font(.system(size: 32))
-                            Text(state.state.capitalized)
-                                .font(.title2.bold())
-                                .foregroundColor(Color("TextPrimary"))
-                        }
+                    } else {
+                        // Graph
+                        let sorted = emotionalStates.sorted(by: { $0.createdAt < $1.createdAt })
+                        let widthPerPoint = geo.size.width / CGFloat(max(sorted.count, 2))
+                        let totalWidth = CGFloat(sorted.count - 1) * widthPerPoint
+                        let xOffset = (geo.size.width - totalWidth) / 2
+                        let padding: CGFloat = 20
+                        let latest = latestEmotion
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Intensity")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        ZStack {
+                            // Lines
+                            ForEach(0..<sorted.count - 1, id: \.self) { i in
+                                let current = sorted[i]
+                                let next = sorted[i + 1]
 
-                            ProgressView(value: Double(state.intensity), total: 10)
-                                .tint(emotionColor(for: state))
-                        }
+                                let x1 = xOffset + CGFloat(i) * widthPerPoint
+                                let x2 = xOffset + CGFloat(i + 1) * widthPerPoint
+                                let y1 = yPosition(for: current, height: geo.size.height, padding: padding)
+                                let y2 = yPosition(for: next, height: geo.size.height, padding: padding)
 
-                        if let note = state.note, !note.isEmpty {
-                            Text("“\(note)”")
-                                .font(.body.italic())
-                                .foregroundColor(Color("TextSecondary"))
-                        }
-
-                        Spacer()
-                    }
-//                    .padding()
-                    .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
-                    .background(Color("Surface"))
-                    .cornerRadius(12)
-                    .transition(.opacity)
-                } else {
-                    let sorted = emotionalStates.sorted(by: { $0.createdAt < $1.createdAt })
-                    let widthPerPoint = geo.size.width / CGFloat(max(sorted.count, 2))
-                    let totalWidth = CGFloat(sorted.count - 1) * widthPerPoint
-                    let xOffset = (geo.size.width - totalWidth) / 2
-                    let padding: CGFloat = 20
-                    let latest = latestEmotion
-
-                    ZStack {
-                        // Lines
-                        ForEach(0..<sorted.count - 1, id: \.self) { i in
-                            let current = sorted[i]
-                            let next = sorted[i + 1]
-
-                            let x1 = xOffset + CGFloat(i) * widthPerPoint
-                            let x2 = xOffset + CGFloat(i + 1) * widthPerPoint
-                            let y1 = yPosition(for: current, height: geo.size.height, padding: padding)
-                            let y2 = yPosition(for: next, height: geo.size.height, padding: padding)
-
-                            Path { path in
-                                path.move(to: CGPoint(x: x1, y: y1))
-                                path.addLine(to: CGPoint(x: x2, y: y2))
+                                Path { path in
+                                    path.move(to: CGPoint(x: x1, y: y1))
+                                    path.addLine(to: CGPoint(x: x2, y: y2))
+                                }
+                                .stroke(LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        emotionColor(for: current),
+                                        emotionColor(for: next)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ), lineWidth: 3)
                             }
-                            .stroke(LinearGradient(
-                                gradient: Gradient(colors: [
-                                    emotionColor(for: current),
-                                    emotionColor(for: next)
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ), lineWidth: 3)
-                        }
 
-                        // Dots + ring for latest
-                        ForEach(0..<sorted.count, id: \.self) { i in
-                            let state = sorted[i]
-                            let x = xOffset + CGFloat(i) * widthPerPoint
-                            let y = yPosition(for: state, height: geo.size.height, padding: padding)
+                            // Dots + ring for latest
+                            ForEach(0..<sorted.count, id: \.self) { i in
+                                let state = sorted[i]
+                                let x = xOffset + CGFloat(i) * widthPerPoint
+                                let y = yPosition(for: state, height: geo.size.height, padding: padding)
 
-                            if state.id == latest?.id {
+                                if state.id == latest?.id {
+                                    Circle()
+                                        .stroke(emotionColor(for: state), lineWidth: 3)
+                                        .frame(width: 18, height: 18)
+                                        .position(x: x, y: y)
+                                }
+
                                 Circle()
-                                    .stroke(emotionColor(for: state), lineWidth: 3)
-                                    .frame(width: 18, height: 18)
+                                    .fill(emotionColor(for: state))
+                                    .frame(width: 10, height: 10)
                                     .position(x: x, y: y)
                             }
 
-                            Circle()
-                                .fill(emotionColor(for: state))
-                                .frame(width: 10, height: 10)
-                                .position(x: x, y: y)
+                            // Time labels – hour only (e.g., 3 pm)
+                            ForEach(0..<sorted.count, id: \.self) { i in
+                                let state = sorted[i]
+                                let x = xOffset + CGFloat(i) * widthPerPoint
+                                let time = formattedHour(state.createdAt)
+                                Text(time)
+                                    .font(.caption2)
+                                    .foregroundColor(Color("TextSecondary"))
+                                    .position(x: x, y: geo.size.height - 8)
+                            }
                         }
-
-                        // Time labels
-                        ForEach(0..<sorted.count, id: \.self) { i in
-                            let state = sorted[i]
-                            let x = xOffset + CGFloat(i) * widthPerPoint
-                            let time = formattedHour(state.createdAt)
-
-                            Text(time)
-                                .font(.caption2)
-                                .foregroundColor(Color("TextSecondary"))
-                                .position(x: x, y: geo.size.height - 8)
-                        }
+                        .transition(.opacity)
                     }
-                    .transition(.opacity)
                 }
+                .frame(height: 110)
+                .animation(.easeInOut(duration: 0.3), value: emotionalStates.count)
             }
-            .frame(height: 110)
-            .animation(.easeInOut(duration: 0.3), value: emotionalStates.count)
+            .padding(10)
+            .frame(maxWidth: .infinity, maxHeight: 180)
+            .background(Color("Surface"))
+            .cornerRadius(16)
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, maxHeight: 180)
-        .background(Color("Surface"))
-        .cornerRadius(16)
+        .buttonStyle(.plain)
+        .fullScreenCover(isPresented: $showDetails) {
+            EmotionStatesDetailView(
+                emotionalStates: emotionalStates,
+                emotionLevelMap: emotionLevelMap,
+                emotionColor: emotionColor(for:),
+                emojiOrSymbol: emojiOrSymbol(for:)
+            )
+        }
     }
 
     // MARK: - Helpers
@@ -155,14 +170,15 @@ struct EmotionGraphCard: View {
         return (1.0 - normalized) * (height - 2 * padding) + padding
     }
 
+    // ⬇️ Hour-only for graph labels
     private func formattedHour(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h a"
-        formatter.amSymbol = "am"
-        formatter.pmSymbol = "pm"
-        formatter.timeZone = .current
-        formatter.locale = .current
-        return formatter.string(from: date)
+        let f = DateFormatter()
+        f.dateFormat = "h a"   // e.g., 3 PM
+        f.amSymbol = "am"
+        f.pmSymbol = "pm"
+        f.timeZone = .current
+        f.locale = .current
+        return f.string(from: date)
     }
 
     private func emotionColor(for state: EmotionalState) -> Color {
@@ -180,7 +196,6 @@ struct EmotionGraphCard: View {
         case "angry": base = .red
         default: base = .gray
         }
-
         return base.opacity(Double(state.intensity) / 10.0)
     }
 
@@ -206,13 +221,3 @@ struct EmotionGraphCard: View {
     }
 }
 
-#Preview {
-    EmotionGraphCard(emotionalStates: [
-        EmotionalState(id: "1", state: "Angry", intensity: 8, note: "Traffic", createdAt: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!),
-        EmotionalState(id: "2", state: "Sad", intensity: 4, note: nil, createdAt: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date())!),
-        EmotionalState(id: "3", state: "Calm", intensity: 6, note: nil, createdAt: Calendar.current.date(bySettingHour: 14, minute: 0, second: 0, of: Date())!),
-        EmotionalState(id: "4", state: "Happy", intensity: 9, note: "Walked outside", createdAt: Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date())!),
-        EmotionalState(id: "5", state: "Joyful", intensity: 10, note: "Evening call", createdAt: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date())!)
-    ])
-    .environment(\.colorScheme, .dark)
-}
