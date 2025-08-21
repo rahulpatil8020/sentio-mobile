@@ -25,7 +25,54 @@ struct HomeView: View {
                     )
                     
                     LazyVGrid(columns: columns, alignment: .center, spacing: 16) {
-                        HabitCard(completed: 5, total: 8)
+                        HabitCard(completed: 5, total: 8, habits:  [
+                            Habit(
+                                id: "1",
+                                title: "Morning Run",
+                                description: "Run at least 2km",
+                                createdAt: Date(),
+                                updatedAt: nil,
+                                startDate: Date(),
+                                endDate: nil,
+                                frequency: "daily",
+                                reminderTime: "07:00 AM",
+                                streak: Streak(current: 5, longest: 10, lastCompletedDate: Calendar.current.date(byAdding: .day, value: -1, to: Date())),
+                                completions: [Completion(date: Date())],
+                                isDeleted: false,
+                                isAccepted: true
+                            ),
+                            Habit(
+                                id: "2",
+                                title: "Read Book",
+                                description: "Read 10 pages",
+                                createdAt: Date(),
+                                updatedAt: nil,
+                                startDate: Date(),
+                                endDate: nil,
+                                frequency: "daily",
+                                reminderTime: "09:00 PM",
+                                streak: Streak(current: 2, longest: 7, lastCompletedDate: nil),
+                                completions: [],
+                                isDeleted: false,
+                                isAccepted: false // Pending habit
+                            ),
+                            Habit(
+                                id: "3",
+                                title: "Meditation",
+                                description: "10 minutes mindfulness",
+                                createdAt: Date(),
+                                updatedAt: nil,
+                                startDate: Date(),
+                                endDate: nil,
+                                frequency: "weekly",
+                                reminderTime: nil,
+                                streak: Streak(current: 0, longest: 3, lastCompletedDate: nil),
+                                completions: [],
+                                isDeleted: false,
+                                isAccepted: true
+                            )
+                        ]
+)
 
                         EmotionGraphCard(emotionalStates: [
                             EmotionalState(id: "1", state: "Angry", intensity: 8, note: "bad traffic", createdAt: Date().addingTimeInterval(-3600 * 6)),

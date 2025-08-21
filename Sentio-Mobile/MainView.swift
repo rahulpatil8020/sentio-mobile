@@ -1,10 +1,3 @@
-//
-//  MainView.swift
-//  Sentio-Mobile
-//
-//  Created by Rahul Patil on 7/29/25.
-//
-
 import SwiftUI
 
 struct MainView: View {

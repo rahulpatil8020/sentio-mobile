@@ -74,8 +74,6 @@ struct DateSelectorView: View {
                             .onTapGesture {
                                 if !isFuture {
                                     selectedDate = date
-                                    print("🕒 selected (UTC): \(selectedDate)")
-                                    print("📅 selected (local): \(DateUtils.localizedFullDate(from: selectedDate))")
                                 }
                             }
                         }
