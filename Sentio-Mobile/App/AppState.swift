@@ -7,7 +7,7 @@ final class AppState: ObservableObject {
         self.isHomeLoading = true
         self.isLoggedIn = TokenManager.shared.accessToken != nil
         self.selectedDate = Calendar.current.startOfDay(for: Date())
-
+        self.isHomeLoadingFirstTime = true
         // Mock/demo defaults (optional)
         self.today = DailyDataResponse.mock
         self.habits = Habit.mockList
@@ -25,6 +25,7 @@ final class AppState: ObservableObject {
     @Published var lastJournalSnippet: String?
     @Published var isProcessingTranscript: Bool = false
     @Published var isHomeLoading: Bool
+    @Published var isHomeLoadingFirstTime: Bool
 
     // Long-lived data
     @Published var habits: [Habit] = []                // Fetched with "today" once

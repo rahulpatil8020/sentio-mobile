@@ -20,7 +20,7 @@ struct MainView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color("Background").ignoresSafeArea())
 
-            if appState.isHomeLoading {
+            if appState.isHomeLoadingFirstTime {
                 LoadingOverlayView()
                     .transition(.opacity)
                     .zIndex(1)

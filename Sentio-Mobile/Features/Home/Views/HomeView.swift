@@ -10,60 +10,77 @@ struct HomeView: View {
     ]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        ZStack {
+            Color("Background").ignoresSafeArea()
 
-                if let user = appState.currentUser {
-                    HeaderView(user: user, selectedDate: appState.selectedDate)
+            VStack(spacing: 0) {
+                // Top area stays interactive even while loading
+                VStack(alignment: .leading, spacing: 16) {
+                    if let user = appState.currentUser {
+                        HeaderView(user: user, selectedDate: appState.selectedDate)
+                    }
+
+                    DateSelectorView(selectedDate: $appState.selectedDate)
                 }
+                .padding(.horizontal)
+                .padding(.top, 0)
 
-                DateSelectorView(selectedDate: $appState.selectedDate)
+                // Everything below can be blocked by the overlay
+                ZStack {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
 
-                // Optional loading/error hint
-                if appState.isHomeLoading {
-                    ProgressView("Loading…")
-                        .tint(Color("Primary"))
+                            // Journal card
+                            JournalCard(
+                                isProcessing: appState.isProcessingTranscript,
+                                lastEntry: (viewModel.visible?.transcripts.first?.text
+                                            ?? appState.today?.transcripts.first?.text),
+                                transcripts: viewModel.visible?.transcripts
+                                             ?? appState.today?.transcripts
+                                             ?? []
+                            )
+
+                            // Grid
+                            LazyVGrid(columns: columns, alignment: .center, spacing: 16) {
+                                // Habits
+                                let habits = appState.habits.filter { !$0.isDeleted }
+                                HabitCard(
+                                    completed: habitsCompletedTodayCount(habits),
+                                    total: habits.count,
+                                    habits: habits
+                                )
+
+                                // Emotions
+                                EmotionGraphCard(
+                                    emotionalStates: viewModel.visible?.emotionalStates
+                                    ?? appState.today?.emotionalStates
+                                    ?? []
+                                )
+                            }
+
+                            // Todos
+                            TodoListCard(
+                                todos: viewModel.visible?.todos
+                                ?? appState.today?.todos
+                                ?? []
+                            )
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 120)
+                        .opacity(appState.isHomeLoading ? 0.2 : 1)
+                        .animation(.easeInOut(duration: 0.25), value: appState.isHomeLoading)
+                    }
+
+                    // Overlay only covers this lower section
+                    if appState.isHomeLoading {
+                        LoadingOverlayView()
+                            .transition(.opacity)
+                            .allowsHitTesting(true) // block interactions below
+                    }
                 }
-
-                // Journal card
-                JournalCard(
-                    isProcessing: appState.isProcessingTranscript,
-                    lastEntry: (viewModel.visible?.transcripts.first?.text ?? appState.today?.transcripts.first?.text),
-                    transcripts: viewModel.visible?.transcripts ?? appState.today?.transcripts ?? []
-                )
-
-                // Grid
-                LazyVGrid(columns: columns, alignment: .center, spacing: 16) {
-
-                    // Habit progress: habits only come from AppState (fetched with TODAY once)
-                    let habits = appState.habits.filter { !$0.isDeleted }
-                    HabitCard(
-                        completed: habitsCompletedTodayCount(habits),
-                        total: habits.count,
-                        habits: habits
-                    )
-
-                    // Emotions
-                    EmotionGraphCard(
-                        emotionalStates: viewModel.visible?.emotionalStates
-                        ?? appState.today?.emotionalStates
-                        ?? []
-                    )
-                }
-
-                // Todos (today: incomplete; past: completed)
-                TodoListCard(
-                    todos: viewModel.visible?.todos
-                    ?? appState.today?.todos
-                    ?? []
-                )
             }
-            .padding(.horizontal)
-            .padding(.bottom, 120)
         }
-        .background(Color("Background").ignoresSafeArea())
-
-        // Auto-fetch on appear & whenever the date changes
+        // Fetch on first appear & whenever the date changes
         .task(id: appState.selectedDate) {
             await viewModel.load(for: appState.selectedDate)
         }
