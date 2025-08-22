@@ -73,7 +73,7 @@ struct HomeView: View {
 
                     // Overlay only covers this lower section
                     if appState.isHomeLoading {
-                        LoadingOverlayView()
+                        LoadingOverlayView(bottomPadding: 140)
                             .transition(.opacity)
                             .allowsHitTesting(true) // block interactions below
                     }

@@ -1,57 +1,55 @@
 import SwiftUI
 
 struct LoadingOverlayView: View {
-    @State private var isAnimating = false
+    @State private var animate = false
+    
+    /// Optional bottom padding (default = 0)
+    var bottomPadding: CGFloat = 0
+
+    // Tweak these to taste
+    private let size: CGFloat = 25
+    private let spacing: CGFloat = 14
+    private let duration: Double = 0.7
+    private let stagger: Double = 0.15
+    private let corner: CGFloat = 4
 
     var body: some View {
         ZStack {
             Color("Background").ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                ZStack {
-                    Circle()
-                        .stroke(Color("Primary").opacity(0.3), lineWidth: 4)
-                        .frame(width: 60, height: 60)
-
-                    Circle()
-                        .fill(Color("Primary"))
-                        .frame(width: 20, height: 20)
-                        .scaleEffect(isAnimating ? 1.4 : 1)
-                        .opacity(isAnimating ? 0.3 : 1)
-                        .animation(
-                            .easeInOut(duration: 1.2).repeatForever(autoreverses: true),
-                            value: isAnimating
-                        )
+            VStack {
+                HStack(spacing: spacing) {
+                    ForEach(0..<4) { i in
+                        RoundedRectangle(cornerRadius: corner, style: .continuous)
+                            .fill(Color("Primary"))
+                            .frame(width: size, height: size)
+                            .rotation3DEffect(
+                                .degrees(animate ? 180 : 0),
+                                axis: (x: 1, y: 1, z: 1),
+                                perspective: 0.6
+                            )
+                            .opacity(animate ? 1 : 0.9)
+                            .animation(
+                                .easeInOut(duration: duration)
+                                    .repeatForever(autoreverses: true)
+                                    .delay(Double(i) * stagger),
+                                value: animate
+                            )
+                    }
                 }
-
-                Text("Sentio")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(Color("Primary"))
-                    .opacity(isAnimating ? 1 : 0.5)
-                    .animation(
-                        .easeInOut(duration: 1.2).repeatForever(autoreverses: true),
-                        value: isAnimating
-                    )
+                .padding(.bottom, bottomPadding)
             }
         }
-        .onAppear {
-            isAnimating = true
-        }
+        .onAppear { animate = true }
     }
 }
 
-struct LoadingOverlayPreviewWrapper: View {
-    @State private var animate = false
-
-    var body: some View {
-        LoadingOverlayView()
-            .onAppear {
-                animate = true
-            }
-    }
+#Preview("Loading Overlay Default") {
+    LoadingOverlayView()
+        .environment(\.colorScheme, .dark)
 }
 
-#Preview {
-    LoadingOverlayPreviewWrapper()
+#Preview("Loading Overlay With Bottom Padding") {
+    LoadingOverlayView(bottomPadding: 80)
         .environment(\.colorScheme, .dark)
 }
