@@ -3,6 +3,21 @@ import Foundation
 @MainActor
 final class AppState: ObservableObject {
     static let shared = AppState()
+    private init() {
+        self.isHomeLoading = true
+        self.isLoggedIn = TokenManager.shared.accessToken != nil
+        self.selectedDate = Calendar.current.startOfDay(for: Date())
+
+        // Mock/demo defaults (optional)
+        self.today = DailyDataResponse.mock
+        self.habits = Habit.mockList
+        self.lastJournalSnippet = today?.transcripts.first?.text
+
+        if isLoggedIn {
+            self.currentUser = UserManager.shared.loadUser()
+            Task { await UserService.shared.refreshUser() }
+        }
+    }
 
     @Published var isLoggedIn: Bool
     @Published var currentUser: User?
@@ -11,26 +26,9 @@ final class AppState: ObservableObject {
     @Published var isProcessingTranscript: Bool = false
     @Published var isHomeLoading: Bool
 
-    @Published var habits: [Habit] = []
-    @Published var today: DailyDataResponse?
-
-    private init() {
-        self.isHomeLoading = true
-        self.isLoggedIn = TokenManager.shared.accessToken != nil
-        self.selectedDate = Calendar.current.startOfDay(for: Date())
-        self.today = DailyDataResponse.mock
-        self.habits = Habit.mockList
-        self.lastJournalSnippet = today?.transcripts.first?.text
-        if isLoggedIn {
-            self.currentUser = UserManager.shared.loadUser()
-            Task {
-                await UserService.shared.refreshUser()
-            }
-            
-            // 👇 Set mock data during preview/debug
-
-        }
-    }
+    // Long-lived data
+    @Published var habits: [Habit] = []                // Fetched with "today" once
+    @Published var today: DailyDataResponse?           // Today's “incomplete todos + reminders + emotions + transcripts”
 
     func setUser(_ user: User) {
         self.currentUser = user

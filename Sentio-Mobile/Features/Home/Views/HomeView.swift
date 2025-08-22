@@ -2,163 +2,85 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject private var appState = AppState.shared
-    @StateObject private var viewModel = HomeViewModel.shared
+    @ObservedObject private var viewModel = HomeViewModel.shared
+
     private let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
     ]
 
     var body: some View {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
 
-                    if let user = appState.currentUser {
-                        HeaderView(user: user, selectedDate: appState.selectedDate)
-                    }
-
-                    DateSelectorView(selectedDate: $appState.selectedDate)
-                
-                    JournalCard(
-                        isProcessing: appState.isProcessingTranscript,
-                        lastEntry: appState.lastJournalSnippet
-                    )
-                    
-                    LazyVGrid(columns: columns, alignment: .center, spacing: 16) {
-                        HabitCard(completed: 5, total: 8, habits:  [
-                            Habit(
-                                id: "1",
-                                title: "Morning Run",
-                                description: "Run at least 2km",
-                                createdAt: Date(),
-                                updatedAt: nil,
-                                startDate: Date(),
-                                endDate: nil,
-                                frequency: "daily",
-                                reminderTime: "07:00 AM",
-                                streak: Streak(current: 5, longest: 10, lastCompletedDate: Calendar.current.date(byAdding: .day, value: -1, to: Date())),
-                                completions: [Completion(date: Date())],
-                                isDeleted: false,
-                                isAccepted: true
-                            ),
-                            Habit(
-                                id: "2",
-                                title: "Read Book",
-                                description: "Read 10 pages",
-                                createdAt: Date(),
-                                updatedAt: nil,
-                                startDate: Date(),
-                                endDate: nil,
-                                frequency: "daily",
-                                reminderTime: "09:00 PM",
-                                streak: Streak(current: 2, longest: 7, lastCompletedDate: nil),
-                                completions: [],
-                                isDeleted: false,
-                                isAccepted: false // Pending habit
-                            ),
-                            Habit(
-                                id: "3",
-                                title: "Meditation",
-                                description: "10 minutes mindfulness",
-                                createdAt: Date(),
-                                updatedAt: nil,
-                                startDate: Date(),
-                                endDate: nil,
-                                frequency: "weekly",
-                                reminderTime: nil,
-                                streak: Streak(current: 0, longest: 3, lastCompletedDate: nil),
-                                completions: [],
-                                isDeleted: false,
-                                isAccepted: true
-                            )
-                        ]
-)
-
-                        EmotionGraphCard(emotionalStates: [
-                            EmotionalState(id: "1", state: "Angry", intensity: 8, note: "bad traffic", createdAt: Date().addingTimeInterval(-3600 * 6)),
-                            EmotionalState(id: "2", state: "Sad", intensity: 4, note: nil, createdAt: Date().addingTimeInterval(-3600 * 5)),
-                            EmotionalState(id: "3", state: "Calm", intensity: 6, note: nil, createdAt: Date().addingTimeInterval(-3600 * 4)),
-                            EmotionalState(id: "4", state: "Happy", intensity: 8, note: "got compliment", createdAt: Date().addingTimeInterval(-3600 * 2)),
-                        ])
-                    }
-                    TodoListCard(todos: [
-                        Todo(
-                            id: "todo1",
-                            title: "Finish journal entry",
-                            completed: false,
-                            dueDate: Date().addingTimeInterval(3600), // in 1 hour
-                            createdBy: "USER",
-                            createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
-                            priority: 2,
-                            completedAt: nil
-                        ),
-                        Todo(
-                            id: "todo2",
-                            title: "Read for 30 minutes",
-                            completed: true,
-                            dueDate: nil,
-                            createdBy: "AI",
-                            createdAt: Date().addingTimeInterval(-86400), // yesterday
-                            priority: 5,
-                            completedAt: Date().addingTimeInterval(-1800)
-                        ),
-                        Todo(
-                            id: "todo3",
-                            title: "Make Dinner",
-                            completed: false,
-                            dueDate: Date().addingTimeInterval(3600), // in 1 hour
-                            createdBy: "USER",
-                            createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
-                            priority: 4,
-                            completedAt: nil
-                        ),
-                        Todo(
-                            id: "todo4",
-                            title: "Code the block",
-                            completed: true,
-                            dueDate: nil,
-                            createdBy: "AI",
-                            createdAt: Date().addingTimeInterval(-86400), // yesterday
-                            priority: 8,
-                            completedAt: Date().addingTimeInterval(-1800)
-                        ),
-                        Todo(
-                            id: "todo5",
-                            title: "Make Anime figure",
-                            completed: false,
-                            dueDate: Date().addingTimeInterval(3600), // in 1 hour
-                            createdBy: "USER",
-                            createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
-                            priority: 2,
-                            completedAt: nil
-                        ),
-                        Todo(
-                            id: "todo6",
-                            title: "Clean Glasses",
-                            completed: true,
-                            dueDate: nil,
-                            createdBy: "AI",
-                            createdAt: Date().addingTimeInterval(-86400), // yesterday
-                            priority: 6,
-                            completedAt: Date().addingTimeInterval(-1800)
-                        )
-                    ])
+                if let user = appState.currentUser {
+                    HeaderView(user: user, selectedDate: appState.selectedDate)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 120)
+
+                DateSelectorView(selectedDate: $appState.selectedDate)
+
+                // Optional loading/error hint
+                if appState.isHomeLoading {
+                    ProgressView("Loading…")
+                        .tint(Color("Primary"))
+                }
+
+                // Journal card
+                JournalCard(
+                    isProcessing: appState.isProcessingTranscript,
+                    lastEntry: (viewModel.visible?.transcripts.first?.text ?? appState.today?.transcripts.first?.text),
+                    transcripts: viewModel.visible?.transcripts ?? appState.today?.transcripts ?? []
+                )
+
+                // Grid
+                LazyVGrid(columns: columns, alignment: .center, spacing: 16) {
+
+                    // Habit progress: habits only come from AppState (fetched with TODAY once)
+                    let habits = appState.habits.filter { !$0.isDeleted }
+                    HabitCard(
+                        completed: habitsCompletedTodayCount(habits),
+                        total: habits.count,
+                        habits: habits
+                    )
+
+                    // Emotions
+                    EmotionGraphCard(
+                        emotionalStates: viewModel.visible?.emotionalStates
+                        ?? appState.today?.emotionalStates
+                        ?? []
+                    )
+                }
+
+                // Todos (today: incomplete; past: completed)
+                TodoListCard(
+                    todos: viewModel.visible?.todos
+                    ?? appState.today?.todos
+                    ?? []
+                )
             }
-        .onAppear {
-            Task {
-                await viewModel.loadTodayIfNeeded()
-            }
+            .padding(.horizontal)
+            .padding(.bottom, 120)
         }
         .background(Color("Background").ignoresSafeArea())
-        
+
+        // Auto-fetch on appear & whenever the date changes
+        .task(id: appState.selectedDate) {
+            await viewModel.load(for: appState.selectedDate)
+        }
+    }
+
+    private func habitsCompletedTodayCount(_ habits: [Habit]) -> Int {
+        let cal = Calendar.current
+        return habits.filter { h in
+            if let last = h.streak.lastCompletedDate, cal.isDateInToday(last) { return true }
+            return h.completions.contains { cal.isDateInToday($0.date) }
+        }.count
     }
 }
+
 #Preview {
     struct HomeViewPreview: View {
         init() {
-            // Inject a mock user into AppState for preview
             AppState.shared.currentUser = User(
                 id: "123",
                 name: "Rahul Patil",
@@ -171,12 +93,10 @@ struct HomeView: View {
                 goals: ["Personal growth", "Fitness"]
             )
         }
-        
         var body: some View {
             HomeView()
-                .environment(\.colorScheme, .dark) // 👈 Preview in dark mode
+                .environment(\.colorScheme, .dark)
         }
     }
-    
     return HomeViewPreview()
 }

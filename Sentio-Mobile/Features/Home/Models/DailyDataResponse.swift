@@ -1,5 +1,17 @@
 import Foundation
 
+// MARK: - Server payloads
+
+/// TODAY payload (includes habits once)
+struct DailyDataFullResponse: Decodable {
+    let habits: [Habit]
+    let todos: [Todo]                    // Incomplete todos (for today)
+    let upcomingReminders: [Reminder]    // Only for today
+    let emotionalStates: [EmotionalState]
+    let transcripts: [Transcript]
+}
+
+/// TODAY snapshot that AppState keeps (no habits here)
 struct DailyDataResponse: Decodable {
     let todos: [Todo]
     let upcomingReminders: [Reminder]
@@ -7,6 +19,26 @@ struct DailyDataResponse: Decodable {
     let transcripts: [Transcript]
 }
 
+/// PAST day payload (no habits/reminders, has completedTodos)
+struct PastDayResponse: Decodable {
+    let completedTodos: [Todo]           // Completed on that day
+    let emotionalStates: [EmotionalState]
+    let transcripts: [Transcript]
+}
+
+// MARK: - UI-facing snapshot
+
+/// A simple, uniform view model that the UI can bind to,
+/// whether it's "today" or a past date.
+struct DayDisplay {
+    let isToday: Bool
+    let todos: [Todo]                    // For today: incomplete; For past: completedTodos
+    let reminders: [Reminder]            // Only today; empty for past
+    let emotionalStates: [EmotionalState]
+    let transcripts: [Transcript]
+}
+
+// MARK: - Your other types (unchanged)
 struct Habit: Decodable, Identifiable {
     let id: String
     let title: String
@@ -15,7 +47,7 @@ struct Habit: Decodable, Identifiable {
     let updatedAt: Date?
     let startDate: Date
     let endDate: Date?
-    let frequency: String // "daily" | "weekly" | "monthly"
+    let frequency: String
     let reminderTime: String?
     let streak: Streak
     let completions: [Completion]
@@ -244,187 +276,5 @@ extension DailyDataResponse {
 
 extension Habit {
     static let mockList: [Habit] = [
-        Habit(
-            id: "habit1",
-            title: "Morning Run",
-            description: "Run 3km every morning",
-            createdAt: Date().addingTimeInterval(-86400 * 10),
-            updatedAt: nil,
-            startDate: Date().addingTimeInterval(-86400 * 10),
-            endDate: nil,
-            frequency: "daily",
-            reminderTime: "07:00",
-            streak: Streak(
-                current: 4,
-                longest: 7,
-                lastCompletedDate: Calendar.current.date(byAdding: .day, value: -1, to: Date())
-            ),
-            completions: [
-                Completion(date: Date().addingTimeInterval(-86400 * 3)),
-                Completion(date: Date().addingTimeInterval(-86400 * 2)),
-                Completion(date: Date().addingTimeInterval(-86400)),
-                Completion(date: Date())
-            ],
-            isDeleted: false,
-            isAccepted: true
-        ),
-        Habit(
-            id: "habit2",
-            title: "Read 10 Pages",
-            description: "Read from any book of choice",
-            createdAt: Date().addingTimeInterval(-86400 * 5),
-            updatedAt: nil,
-            startDate: Date().addingTimeInterval(-86400 * 5),
-            endDate: nil,
-            frequency: "daily",
-            reminderTime: "21:00",
-            streak: Streak(
-                current: 1,
-                longest: 3,
-                lastCompletedDate: Date().addingTimeInterval(-86400)
-            ),
-            completions: [
-                Completion(date: Date().addingTimeInterval(-86400))
-            ],
-            isDeleted: false,
-            isAccepted: true
-        ),
-        Habit(
-            id: "habit3",
-            title: "Meditation",
-            description: "10 minutes of mindfulness meditation",
-            createdAt: Date().addingTimeInterval(-86400 * 20),
-            updatedAt: nil,
-            startDate: Date().addingTimeInterval(-86400 * 20),
-            endDate: nil,
-            frequency: "daily",
-            reminderTime: "06:30",
-            streak: Streak(
-                current: 6,
-                longest: 12,
-                lastCompletedDate: Date().addingTimeInterval(-86400)
-            ),
-            completions: [
-                Completion(date: Date().addingTimeInterval(-86400 * 6)),
-                Completion(date: Date().addingTimeInterval(-86400 * 5)),
-                Completion(date: Date().addingTimeInterval(-86400 * 4)),
-                Completion(date: Date().addingTimeInterval(-86400 * 3)),
-                Completion(date: Date().addingTimeInterval(-86400 * 2)),
-                Completion(date: Date().addingTimeInterval(-86400))
-            ],
-            isDeleted: false,
-            isAccepted: true
-        ),
-        Habit(
-            id: "habit4",
-            title: "Drink 2L Water",
-            description: "Stay hydrated throughout the day",
-            createdAt: Date().addingTimeInterval(-86400 * 15),
-            updatedAt: nil,
-            startDate: Date().addingTimeInterval(-86400 * 15),
-            endDate: nil,
-            frequency: "daily",
-            reminderTime: nil,
-            streak: Streak(
-                current: 2,
-                longest: 9,
-                lastCompletedDate: nil
-            ),
-            completions: [],
-            isDeleted: false,
-            isAccepted: true
-        ),
-        Habit(
-            id: "habit5",
-            title: "Weekly Meal Prep",
-            description: "Prepare healthy meals for the week",
-            createdAt: Date().addingTimeInterval(-86400 * 30),
-            updatedAt: nil,
-            startDate: Date().addingTimeInterval(-86400 * 30),
-            endDate: nil,
-            frequency: "weekly",
-            reminderTime: "17:00",
-            streak: Streak(
-                current: 3,
-                longest: 5,
-                lastCompletedDate: Calendar.current.date(byAdding: .day, value: -7, to: Date())
-            ),
-            completions: [
-                Completion(date: Date().addingTimeInterval(-86400 * 7)),
-                Completion(date: Date().addingTimeInterval(-86400 * 14)),
-                Completion(date: Date().addingTimeInterval(-86400 * 21))
-            ],
-            isDeleted: false,
-            isAccepted: true
-        ),
-        Habit(
-            id: "habit6",
-            title: "Gratitude Journal",
-            description: "Write 3 things I'm grateful for",
-            createdAt: Date().addingTimeInterval(-86400 * 12),
-            updatedAt: nil,
-            startDate: Date().addingTimeInterval(-86400 * 12),
-            endDate: nil,
-            frequency: "daily",
-            reminderTime: "22:00",
-            streak: Streak(
-                current: 5,
-                longest: 5,
-                lastCompletedDate: Date()
-            ),
-            completions: [
-                Completion(date: Date().addingTimeInterval(-86400 * 4)),
-                Completion(date: Date().addingTimeInterval(-86400 * 3)),
-                Completion(date: Date().addingTimeInterval(-86400 * 2)),
-                Completion(date: Date().addingTimeInterval(-86400)),
-                Completion(date: Date())
-            ],
-            isDeleted: false,
-            isAccepted: true
-        ),
-        Habit(
-            id: "habit7",
-            title: "Sunday Cleaning",
-            description: "Tidy and clean the apartment",
-            createdAt: Date().addingTimeInterval(-86400 * 40),
-            updatedAt: nil,
-            startDate: Date().addingTimeInterval(-86400 * 40),
-            endDate: nil,
-            frequency: "weekly",
-            reminderTime: "10:00",
-            streak: Streak(
-                current: 2,
-                longest: 4,
-                lastCompletedDate: Calendar.current.date(byAdding: .day, value: -7, to: Date())
-            ),
-            completions: [
-                Completion(date: Date().addingTimeInterval(-86400 * 7)),
-                Completion(date: Date().addingTimeInterval(-86400 * 14))
-            ],
-            isDeleted: false,
-            isAccepted: true
-        ),
-        Habit(
-            id: "habit8",
-            title: "Monthly Budget Review",
-            description: "Check expenses and savings",
-            createdAt: Date().addingTimeInterval(-86400 * 60),
-            updatedAt: nil,
-            startDate: Date().addingTimeInterval(-86400 * 60),
-            endDate: nil,
-            frequency: "monthly",
-            reminderTime: "19:00",
-            streak: Streak(
-                current: 1,
-                longest: 2,
-                lastCompletedDate: Calendar.current.date(byAdding: .day, value: -30, to: Date())
-            ),
-            completions: [
-                Completion(date: Date().addingTimeInterval(-86400 * 30)),
-                Completion(date: Date().addingTimeInterval(-86400 * 60))
-            ],
-            isDeleted: false,
-            isAccepted: true
-        )
     ]
 }

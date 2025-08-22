@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Card (unchanged UI, now feeds real Habit list into the detail screen)
+// MARK: - Card
 struct HabitCard: View {
     let completed: Int
     let total: Int
@@ -24,44 +24,64 @@ struct HabitCard: View {
     }
 
     var body: some View {
-        Button { showDetails = true } label: {
+        Button {
+            showDetails = true
+        } label: {
             VStack(alignment: .center, spacing: 12) {
                 Text("Track your Habits")
                     .font(.headline)
                     .foregroundColor(Color("TextPrimary"))
 
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 10)
-
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(
-                            progressColor,
-                            style: StrokeStyle(lineWidth: 10, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeOut(duration: 0.6), value: progress)
-
-                    Text("\(completed)/\(total)")
-                        .font(.title2.bold())
-                        .foregroundColor(.white)
-                }
-                .frame(width: 80, height: 80)
-
-                VStack(spacing: 4) {
-                    if progress >= 1.0 {
-                        Text("Great job! 🎉")
-                            .foregroundColor(Color("TextPrimary"))
-                            .font(.subheadline)
-                    } else {
-                        Text("you’re almost there!")
-                            .foregroundColor(Color("TextPrimary"))
-                            .font(.subheadline)
-
-                        Text("Only \(remaining) more to go")
+                if habits.isEmpty {
+                    // Empty State
+                    VStack(spacing: 10) {
+                        Image(systemName: "leaf.circle")
+                            .font(.system(size: 40))
                             .foregroundColor(Color("TextSecondary"))
+                        Text("No habits yet")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(Color("TextPrimary"))
+                        Text("Add or accept a habit to start building your streaks.")
                             .font(.caption)
+                            .foregroundColor(Color("TextSecondary"))
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    // Normal State
+                    ZStack {
+                        Circle()
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 10)
+
+                        Circle()
+                            .trim(from: 0, to: progress)
+                            .stroke(
+                                progressColor,
+                                style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeOut(duration: 0.6), value: progress)
+
+                        Text("\(completed)/\(total)")
+                            .font(.title2.bold())
+                            .foregroundColor(.white)
+                    }
+                    .frame(width: 80, height: 80)
+
+                    VStack(spacing: 4) {
+                        if progress >= 1.0 {
+                            Text("Great job! 🎉")
+                                .foregroundColor(Color("TextPrimary"))
+                                .font(.subheadline)
+                        } else {
+                            Text("You’re almost there!")
+                                .foregroundColor(Color("TextPrimary"))
+                                .font(.subheadline)
+
+                            Text("Only \(remaining) more to go")
+                                .foregroundColor(Color("TextSecondary"))
+                                .font(.caption)
+                        }
                     }
                 }
             }
@@ -79,7 +99,6 @@ struct HabitCard: View {
     }
 }
 
-
 // MARK: - Mock Data for Previews
 extension Habit {
     static let sampleHabits: [Habit] = [
@@ -93,7 +112,8 @@ extension Habit {
             endDate: nil,
             frequency: "daily",
             reminderTime: "07:00 AM",
-            streak: Streak(current: 5, longest: 10, lastCompletedDate: Calendar.current.date(byAdding: .day, value: -1, to: Date())),
+            streak: Streak(current: 5, longest: 10,
+                           lastCompletedDate: Calendar.current.date(byAdding: .day, value: -1, to: Date())),
             completions: [Completion(date: Date())],
             isDeleted: false,
             isAccepted: true
@@ -111,33 +131,30 @@ extension Habit {
             streak: Streak(current: 2, longest: 7, lastCompletedDate: nil),
             completions: [],
             isDeleted: false,
-            isAccepted: false // Pending habit
-        ),
-        Habit(
-            id: "3",
-            title: "Meditation",
-            description: "10 minutes mindfulness",
-            createdAt: Date(),
-            updatedAt: nil,
-            startDate: Date(),
-            endDate: nil,
-            frequency: "weekly",
-            reminderTime: nil,
-            streak: Streak(current: 0, longest: 3, lastCompletedDate: nil),
-            completions: [],
-            isDeleted: false,
-            isAccepted: true
+            isAccepted: false
         )
     ]
 }
 
 // MARK: - Previews
-#Preview {
+#Preview("With Habits") {
     VStack {
         HabitCard(
             completed: 1,
-            total: 3,
+            total: 2,
             habits: Habit.sampleHabits
+        )
+        .padding()
+    }
+    .environment(\.colorScheme, .dark)
+}
+
+#Preview("Empty Habits") {
+    VStack {
+        HabitCard(
+            completed: 0,
+            total: 0,
+            habits: []
         )
         .padding()
     }

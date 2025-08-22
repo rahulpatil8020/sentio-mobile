@@ -5,7 +5,7 @@ import SwiftUI
 struct JournalCard: View {
     let isProcessing: Bool
     let lastEntry: String?
-    let transcripts: [Transcript] = [] // optional; defaults to empty
+    let transcripts: [Transcript] // optional; defaults to empty
 
     @State private var showAllTranscripts = false
 
@@ -74,26 +74,29 @@ struct JournalCard: View {
 }
 
 
-// MARK: - Previews
+#Preview("With Transcripts") {
+    let now = Date()
+    let transcripts: [Transcript] = [
+        .init(id: "t1",
+              text: "This morning I walked quietly around the park, noticing the sound of leaves and the rhythm of my steps. It gave me a rare sense of calm before starting work.",
+              summary: "Morning walk brought calm",
+              createdAt: now.addingTimeInterval(-60*60)),
+        .init(id: "t2",
+              text: "Team standup went smoothly. Shared progress on auth bug fix and clarified blockers for others. It felt good to support the team while also moving my own tasks forward.",
+              summary: "Supportive team standup",
+              createdAt: now.addingTimeInterval(-2*60*60)),
+        .init(id: "t3",
+              text: "The evening traffic jam was draining. I tried to focus on breathing and listening to music, but the frustration lingered. Still, I managed to shift my mood once home.",
+              summary: "Commute stress managed",
+              createdAt: now.addingTimeInterval(-3*60*60))
+    ]
 
-#Preview("Processing State") {
-    JournalCard(isProcessing: true, lastEntry: nil)
-        .padding()
-        .background(Color("Background"))
-        .environment(\.colorScheme, .dark)
+    return JournalCard(
+        isProcessing: false,
+        lastEntry: transcripts.first?.text,
+        transcripts: transcripts
+    )
+    .padding()
+    .background(Color("Background"))
+    .environment(\.colorScheme, .dark)
 }
-
-#Preview("With Last Entry") {
-    JournalCard(isProcessing: false, lastEntry: "I had a really great day today. Felt peaceful.")
-        .padding()
-        .background(Color("Background"))
-        .environment(\.colorScheme, .dark)
-}
-
-#Preview("Empty Entry") {
-    JournalCard(isProcessing: false, lastEntry: "")
-        .padding()
-        .background(Color("Background"))
-        .environment(\.colorScheme, .dark)
-}
-

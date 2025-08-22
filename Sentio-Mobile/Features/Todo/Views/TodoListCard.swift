@@ -12,6 +12,7 @@ struct TodoListCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // Header
             HStack {
                 Text("Task List")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
@@ -27,24 +28,44 @@ struct TodoListCard: View {
                 }
             }
 
-            // Top 4 by priority (10 highest first)
-            VStack(spacing: 10) {
-                ForEach(topFour) { todo in
-                    TodoRow(todo: todo)
-                }
-            }
+            // Content
+            if todos.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "checklist.unchecked")
+                        .font(.system(size: 42))
+                        .foregroundColor(Color("TextSecondary"))
 
-            if todos.count > 4 {
-                Button { showAll = true } label: {
-                    HStack(spacing: 6) {
-                        Text("Show more")
-                        Image(systemName: "chevron.right").font(.caption)
-                    }
-                    .font(.callout.weight(.semibold))
-                    .foregroundColor(Color("TextSecondary"))
-                    .padding(.top, 2)
+                    Text("No tasks yet")
+                        .font(.headline)
+                        .foregroundColor(Color("TextPrimary"))
+
+                    Text("Add your first task to stay organized.")
+                        .font(.subheadline)
+                        .foregroundColor(Color("TextSecondary"))
+                        .multilineTextAlignment(.center)
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, minHeight: 120)
+                .padding(.vertical, 8)
+            } else {
+                // Top 4 by priority (10 highest first)
+                VStack(spacing: 10) {
+                    ForEach(topFour) { todo in
+                        TodoRow(todo: todo)
+                    }
+                }
+
+                if todos.count > 4 {
+                    Button { showAll = true } label: {
+                        HStack(spacing: 6) {
+                            Text("Show more")
+                            Image(systemName: "chevron.right").font(.caption)
+                        }
+                        .font(.callout.weight(.semibold))
+                        .foregroundColor(Color("TextSecondary"))
+                        .padding(.top, 2)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .padding(16)
@@ -169,22 +190,45 @@ struct AllTodosView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(sorted(todos)) { todo in
-                    TodoRow(todo: todo)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .padding(.vertical, 4)
+            if todos.isEmpty {
+                // Empty-state inside the full list too (defensive)
+                VStack(spacing: 12) {
+                    Image(systemName: "checklist.unchecked")
+                        .font(.system(size: 42))
+                        .foregroundColor(Color("TextSecondary"))
+                    Text("No tasks to show")
+                        .font(.headline)
+                        .foregroundColor(Color("TextPrimary"))
+                    Text("Create a task to get started.")
+                        .font(.subheadline)
+                        .foregroundColor(Color("TextSecondary"))
                 }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(Color("Background").ignoresSafeArea())
-            .navigationTitle("All Tasks")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { dismiss() }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color("Background").ignoresSafeArea())
+                .navigationTitle("All Tasks")
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Close") { dismiss() }
+                    }
+                }
+            } else {
+                List {
+                    ForEach(sorted(todos)) { todo in
+                        TodoRow(todo: todo)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .padding(.vertical, 4)
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(Color("Background").ignoresSafeArea())
+                .navigationTitle("All Tasks")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Close") { dismiss() }
+                    }
                 }
             }
         }
@@ -227,7 +271,6 @@ struct AddTodoSheet: View {
                 }
 
                 Section("Priority (1–10)") {
-                    // segmented for common picks + a stepper for full range
                     HStack {
                         Picker("", selection: $priority) {
                             Text("1").tag(1)
@@ -282,7 +325,7 @@ struct AddTodoSheet: View {
 }
 
 // MARK: - Preview
-#Preview {
+#Preview("With Tasks") {
     let sample: [Todo] = [
         .init(id: "1", title: "Complete Assignment", completed: false,
               dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
@@ -301,6 +344,15 @@ struct AddTodoSheet: View {
 
     return ScrollView {
         TodoListCard(todos: sample)
+            .padding()
+    }
+    .background(Color("Background"))
+    .environment(\.colorScheme, .dark)
+}
+
+#Preview("Empty State") {
+    ScrollView {
+        TodoListCard(todos: [])
             .padding()
     }
     .background(Color("Background"))
