@@ -2,11 +2,16 @@ import SwiftUI
 
 // MARK: - Card
 struct TodoListCard: View {
-    @State private var todos: [Todo]
+    // Incoming data from parent (always reflects the latest fetch)
+    let items: [Todo]
+
+    // Local mutable copy for UI edits (add, sort, etc.)
+    @State private var todos: [Todo] = []
     @State private var showAll = false
     @State private var showAdd = false
 
     init(todos: [Todo]) {
+        self.items = todos
         _todos = State(initialValue: todos)
     }
 
@@ -47,7 +52,7 @@ struct TodoListCard: View {
                 .frame(maxWidth: .infinity, minHeight: 120)
                 .padding(.vertical, 8)
             } else {
-                // Top 4 by priority (10 highest first)
+                // Top 4 by priority
                 VStack(spacing: 10) {
                     ForEach(topFour) { todo in
                         TodoRow(todo: todo)
@@ -75,7 +80,7 @@ struct TodoListCard: View {
         .fullScreenCover(isPresented: $showAll) {
             AllTodosView(todos: $todos)
         }
-        // Add todo sheet (small modal) with Background color
+        // Add todo sheet
         .sheet(isPresented: $showAdd) {
             AddTodoSheet { newTodo in
                 todos.append(newTodo)
@@ -83,6 +88,10 @@ struct TodoListCard: View {
             }
             .presentationDetents([.height(420), .medium])
             .background(Color("Background").ignoresSafeArea())
+        }
+        // 🔄 Keep local state in sync with incoming prop whenever parent updates
+        .onChange(of: items) { newItems in
+            todos = sorted(newItems)
         }
     }
 
@@ -107,7 +116,6 @@ struct TodoListCard: View {
         }
     }
 }
-
 // MARK: - Row
 struct TodoRow: View {
     let todo: Todo
@@ -342,7 +350,7 @@ struct AddTodoSheet: View {
               createdBy: "rahul", createdAt: Date().addingTimeInterval(-20000), priority: 7, completedAt: nil),
     ]
 
-    return ScrollView {
+    ScrollView {
         TodoListCard(todos: sample)
             .padding()
     }

@@ -27,13 +27,11 @@ struct PastDayResponse: Decodable {
 }
 
 // MARK: - UI-facing snapshot
-
-/// A simple, uniform view model that the UI can bind to,
-/// whether it's "today" or a past date.
 struct DayDisplay {
+    let dayKey: String          // "yyyy-MM-dd" for the date this snapshot represents
     let isToday: Bool
-    let todos: [Todo]                    // For today: incomplete; For past: completedTodos
-    let reminders: [Reminder]            // Only today; empty for past
+    let todos: [Todo]
+    let reminders: [Reminder]   // empty for past days
     let emotionalStates: [EmotionalState]
     let transcripts: [Transcript]
 }
@@ -55,7 +53,7 @@ struct Habit: Decodable, Identifiable {
     let isAccepted: Bool
 }
 
-struct Todo: Decodable, Identifiable {
+struct Todo: Decodable, Identifiable, Equatable {
     let id: String
     let title: String
     let completed: Bool

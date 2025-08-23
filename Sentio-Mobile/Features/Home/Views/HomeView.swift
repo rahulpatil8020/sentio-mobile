@@ -3,11 +3,19 @@ import SwiftUI
 struct HomeView: View {
     @ObservedObject private var appState = AppState.shared
     @ObservedObject private var viewModel = HomeViewModel.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     private let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
     ]
+
+    // Helper: only trust `visible` when it matches the selected dayKey
+    private var matchedDisplay: DayDisplay? {
+        let key = viewModel.dayKey(for: appState.selectedDate)
+        guard viewModel.visible?.dayKey == key else { return nil }
+        return viewModel.visible
+    }
 
     var body: some View {
         ZStack {
@@ -30,37 +38,28 @@ struct HomeView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
 
-                            // Journal card
+                            // Journal card (use only matchedDisplay)
                             JournalCard(
                                 isProcessing: appState.isProcessingTranscript,
-                                lastEntry: (viewModel.visible?.transcripts.first?.text
-                                            ?? appState.today?.transcripts.first?.text),
-                                transcripts: viewModel.visible?.transcripts
-                                             ?? appState.today?.transcripts
-                                             ?? []
+                                lastEntry: matchedDisplay?.transcripts.first?.text,
+                                transcripts: matchedDisplay?.transcripts ?? []
                             )
 
                             // Grid
                             LazyVGrid(columns: columns, alignment: .center, spacing: 16) {
-                                // Habits
+                                // Habits (always come from AppState; fetched with "today")
                                 let habits = appState.habits.filter { !$0.isDeleted }
-                                HabitCard(
-                                    habits: habits
-                                )
+                                HabitCard(habits: habits)
 
-                                // Emotions
+                                // Emotions (use only matchedDisplay)
                                 EmotionGraphCard(
-                                    emotionalStates: viewModel.visible?.emotionalStates
-                                    ?? appState.today?.emotionalStates
-                                    ?? []
+                                    emotionalStates: matchedDisplay?.emotionalStates ?? []
                                 )
                             }
 
-                            // Todos
+                            // Todos (use only matchedDisplay)
                             TodoListCard(
-                                todos: viewModel.visible?.todos
-                                ?? appState.today?.todos
-                                ?? []
+                                todos: matchedDisplay?.todos ?? []
                             )
                         }
                         .padding(.horizontal)
@@ -82,14 +81,15 @@ struct HomeView: View {
         .task(id: appState.selectedDate) {
             await viewModel.load(for: appState.selectedDate)
         }
-    }
-
-    private func habitsCompletedTodayCount(_ habits: [Habit]) -> Int {
-        let cal = Calendar.current
-        return habits.filter { h in
-            if let last = h.streak.lastCompletedDate, cal.isDateInToday(last) { return true }
-            return h.completions.contains { cal.isDateInToday($0.date) }
-        }.count
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                viewModel.handleDayBoundaryIfNeeded()
+            }
+        }
+        // Also listen for the explicit calendar-day-changed notification
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            viewModel.handleDayBoundaryIfNeeded()
+        }
     }
 }
 
