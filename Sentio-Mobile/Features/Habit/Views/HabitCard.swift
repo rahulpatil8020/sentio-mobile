@@ -2,7 +2,8 @@ import SwiftUI
 
 // MARK: - Card
 struct HabitCard: View {
-    let habits: [Habit] // only pass the list
+    let habits: [Habit]          // already filtered for isDeleted outside, ideally
+    let selectedDate: Date       // 👈 pass this in
 
     @State private var showDetails = false
 
@@ -11,10 +12,16 @@ struct HabitCard: View {
 
     private var completed: Int {
         let cal = Calendar.current
+        // Count a habit as completed if any completion is on selectedDate,
+        // OR the streak.lastCompletedDate is on selectedDate (defensive).
         return habits.filter { h in
-            if let last = h.streak.lastCompletedDate,
-               cal.isDateInToday(last) { return true }
-            return h.completions.contains { cal.isDateInToday($0.date) }
+            let didCompleteFromCompletions = h.completions.contains {
+                cal.isDate($0.date, inSameDayAs: selectedDate)
+            }
+            let didCompleteFromStreak = h.streak.lastCompletedDate.map {
+                cal.isDate($0, inSameDayAs: selectedDate)
+            } ?? false
+            return didCompleteFromCompletions || didCompleteFromStreak
         }.count
     }
 
@@ -107,56 +114,117 @@ struct HabitCard: View {
     }
 }
 
-// MARK: - Mock Data for Previews
 extension Habit {
-    static let sampleHabits: [Habit] = [
-        Habit(
-            id: "1",
-            title: "Morning Run",
-            description: "Run at least 2km",
-            createdAt: Date(),
-            updatedAt: nil,
-            startDate: Date(),
-            endDate: nil,
-            frequency: "daily",
-            reminderTime: "07:00 AM",
-            streak: Streak(current: 5, longest: 10,
-                           lastCompletedDate: Calendar.current.date(byAdding: .day, value: -1, to: Date())),
-            completions: [Completion(date: Date())],
-            isDeleted: false,
-            isAccepted: true
-        ),
-        Habit(
-            id: "2",
-            title: "Read Book",
-            description: "Read 10 pages",
-            createdAt: Date(),
-            updatedAt: nil,
-            startDate: Date(),
-            endDate: nil,
-            frequency: "daily",
-            reminderTime: "09:00 PM",
-            streak: Streak(current: 2, longest: 7, lastCompletedDate: nil),
-            completions: [],
-            isDeleted: false,
-            isAccepted: false
-        )
-    ]
+    static let sampleHabits: [Habit] = {
+        let cal = Calendar.current
+        let today = Date()
+        let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
+        let twoDaysAgo = cal.date(byAdding: .day, value: -2, to: today)!
+
+        return [
+            Habit(
+                id: "h1",
+                title: "Morning Run",
+                description: "Run at least 2 km outside or on treadmill.",
+                createdAt: twoDaysAgo,
+                updatedAt: nil,
+                startDate: twoDaysAgo,
+                endDate: nil,
+                frequency: "daily",
+                reminderTime: "07:00 AM",
+                streak: Streak(current: 3, longest: 7, lastCompletedDate: yesterday),
+                completions: [
+                    Completion(date: today),
+                    Completion(date: yesterday),
+                    Completion(date: twoDaysAgo)
+                ],
+                isDeleted: false,
+                isAccepted: true
+            ),
+            Habit(
+                id: "h2",
+                title: "Read Book",
+                description: "Read at least 20 pages of non-fiction.",
+                createdAt: yesterday,
+                updatedAt: nil,
+                startDate: yesterday,
+                endDate: nil,
+                frequency: "daily",
+                reminderTime: "09:00 PM",
+                streak: Streak(current: 1, longest: 4, lastCompletedDate: today),
+                completions: [
+                    Completion(date: today)
+                ],
+                isDeleted: false,
+                isAccepted: true
+            ),
+            Habit(
+                id: "h3",
+                title: "Meditation",
+                description: "10 minutes mindfulness meditation.",
+                createdAt: today,
+                updatedAt: nil,
+                startDate: today,
+                endDate: nil,
+                frequency: "weekly",
+                reminderTime: nil,
+                streak: Streak(current: 0, longest: 2, lastCompletedDate: nil),
+                completions: [],
+                isDeleted: false,
+                isAccepted: false // pending
+            ),
+            Habit(
+                id: "h4",
+                title: "Stretching Routine",
+                description: "5–10 minutes evening mobility/stretching.",
+                createdAt: twoDaysAgo,
+                updatedAt: nil,
+                startDate: twoDaysAgo,
+                endDate: nil,
+                frequency: "monthly",
+                reminderTime: "08:00 PM",
+                streak: Streak(current: 2, longest: 5, lastCompletedDate: twoDaysAgo),
+                completions: [
+                    Completion(date: twoDaysAgo)
+                ],
+                isDeleted: false,
+                isAccepted: true
+            )
+        ]
+    }()
 }
 
-// MARK: - Previews
-#Preview("With Habits") {
+#Preview("With Habits (Today)") {
     VStack {
-        HabitCard(habits: Habit.sampleHabits)
-            .padding()
+        HabitCard(
+            habits: Habit.sampleHabits,
+            selectedDate: Date()              // count completions for today
+        )
+        .padding()
     }
     .environment(\.colorScheme, .dark)
 }
 
 #Preview("Empty Habits") {
     VStack {
-        HabitCard(habits: [])
-            .padding()
+        HabitCard(
+            habits: [],
+            selectedDate: Date()              // date still required
+        )
+        .padding()
+    }
+    .environment(\.colorScheme, .dark)
+}
+
+#Preview("With Habits (Custom Day)") {
+    // Example: pretend we're previewing two days ago
+    let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+    return VStack {
+        HabitCard(
+            habits: Habit.sampleHabits,
+            selectedDate: twoDaysAgo          // counts against this day
+        )
+        .padding()
     }
     .environment(\.colorScheme, .dark)
 }

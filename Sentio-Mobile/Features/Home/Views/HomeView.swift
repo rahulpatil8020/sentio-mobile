@@ -49,7 +49,7 @@ struct HomeView: View {
                             LazyVGrid(columns: columns, alignment: .center, spacing: 16) {
                                 // Habits (always come from AppState; fetched with "today")
                                 let habits = appState.habits.filter { !$0.isDeleted }
-                                HabitCard(habits: habits)
+                                HabitCard(habits: habits, selectedDate: appState.selectedDate)
 
                                 // Emotions (use only matchedDisplay)
                                 EmotionGraphCard(
