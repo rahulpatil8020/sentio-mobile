@@ -10,7 +10,16 @@ import SwiftUI
 @main
 struct Sentio_MobileApp: App {
     @StateObject private var appState = AppState.shared
+    init() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.titleTextAttributes = [.foregroundColor: UIColor(named: "TextPrimary")!]
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(named: "TextPrimary")!]
 
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+    }
     var body: some Scene {
         WindowGroup {
             if appState.isLoggedIn {

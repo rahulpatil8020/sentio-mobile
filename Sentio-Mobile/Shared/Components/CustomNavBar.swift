@@ -53,12 +53,18 @@ struct CustomNavBar: View {
             let notchRadius = geo.size.width * 0.12
             
             ZStack {
-                // Background bar
+                // Bar background with gradient
                 CircularNotchedBarShape()
-                    .fill(Color("Surface"))
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color("Surface"), Color("Background")]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
                     .frame(height: barHeight)
                     .elevation(.medium)
-                
+
                 // Mic button
                 Button(action: { showRecording = true }) {
                     Image(systemName: "mic.fill")
@@ -67,7 +73,13 @@ struct CustomNavBar: View {
                         .padding(notchRadius * 0.4)
                         .background(
                             Circle()
-                                .fill(Color("Surface"))
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color("Surface"), Color("Background")]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                                 .elevation(.high)
                         )
                         .contentShape(Circle())
@@ -76,7 +88,6 @@ struct CustomNavBar: View {
                 .sheet(isPresented: $showRecording) {
                     RecordingModalView(isPresented: $showRecording)
                 }
-                
                 // Side icons
                 HStack {
                     Button(action: { selectedTab = "home" }) {

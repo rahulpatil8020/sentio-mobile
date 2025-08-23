@@ -234,34 +234,100 @@ struct AddHabitSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Basics") {
-                    TextField("Title", text: $title)
-                    TextField("Description (optional)", text: $descriptionText, axis: .vertical)
+                // MARK: Basics
+                Section() {
+                    // Title
+                    TextField("", text: $title)
+                        .placeholder("Title", when: title.isEmpty)
+                        .foregroundColor(Color("TextPrimary"))
+                        .tint(Color("Primary"))
+                        .listRowBackground(Color("Surface"))
+
+                    // Description (multiline)
+                    TextField("", text: $descriptionText, axis: .vertical)
+                        .placeholder("Description (optional)", when: descriptionText.isEmpty)
                         .lineLimit(1...3)
+                        .foregroundColor(Color("TextPrimary"))
+                        .tint(Color("Primary"))
+                        .listRowBackground(Color("Surface"))
+
+                    // Frequency (segmented)
                     Picker("Frequency", selection: $frequency) {
                         Text("Daily").tag("daily")
                         Text("Weekly").tag("weekly")
                         Text("Monthly").tag("monthly")
                     }
                     .pickerStyle(.segmented)
-                    TextField("Reminder (e.g. 07:00 AM)", text: $reminderTime)
+                    .tint(Color("Primary"))
+                    .listRowBackground(Color("Surface"))
+
+                    // Reminder
+                    TextField("", text: $reminderTime)
+                        .placeholder("Reminder (e.g. 07:00 AM)", when: reminderTime.isEmpty)
                         .textInputAutocapitalization(.never)
+                        .foregroundColor(Color("TextPrimary"))
+                        .tint(Color("Primary"))
+                        .listRowBackground(Color("Surface"))
+                } header: {
+                    Text("Basics")
+                        .foregroundColor(Color("TextSecondary"))
                 }
 
-                Section("Dates") {
-                    DatePicker("Start", selection: $startDate, displayedComponents: .date)
-                    Toggle("Set end date", isOn: $hasEndDate.animation())
+                // MARK: Dates
+                Section() {
+                    // Start date with colored label
+                    LabeledContent {
+                        DatePicker("", selection: $startDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .tint(Color("Primary"))
+                            .foregroundColor(.white)   // makes the date text white
+                            
+                    } label: {
+                        Text("Start").foregroundColor(Color("TextSecondary"))
+                    }
+                    .listRowBackground(Color("Surface"))
+
+                    // End date toggle with colored label
+                    Toggle(isOn: $hasEndDate.animation()) {
+                        Text("Set end date").foregroundColor(Color("TextPrimary"))
+                    }
+                    .tint(Color("Primary"))
+                    .listRowBackground(Color("Surface"))
+
+                    // Conditional End date row
                     if hasEndDate {
-                        DatePicker("End", selection: Binding(
-                            get: { endDate ?? Date() },
-                            set: { endDate = $0 }
-                        ), displayedComponents: .date)
+                        LabeledContent {
+                            DatePicker("",
+                                       selection: Binding(
+                                           get: { endDate ?? Date() },
+                                           set: { endDate = $0 }
+                                       ),
+                                       displayedComponents: .date)
+                            .labelsHidden()
+                            .tint(Color("Primary"))
+                        } label: {
+                            Text("End").foregroundColor(Color("TextSecondary"))
+                        }
+                        .listRowBackground(Color("Surface"))
                     }
                 }
+                header: {
+                       Text("Dates")
+                           .foregroundColor(Color("TextSecondary"))
+                   }
 
-                Section("Status") {
-                    Toggle("Accepted", isOn: $isAccepted)
+                // MARK: Status
+                Section() {
+                    Toggle(isOn: $isAccepted) {
+                        Text("Accepted").foregroundColor(Color("TextPrimary"))
+                    }
+                    .tint(Color("Primary"))
+                    .listRowBackground(Color("Surface"))
                 }
+                header: {
+                       Text("Status")
+                           .foregroundColor(Color("TextSecondary"))
+                   }
             }
             .scrollContentBackground(.hidden)
             .background(Color("Background").ignoresSafeArea())
@@ -271,7 +337,7 @@ struct AddHabitSheet: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+                    Button {
                         let newHabit = Habit(
                             id: UUID().uuidString,
                             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -289,12 +355,34 @@ struct AddHabitSheet: View {
                         )
                         onAdd(newHabit)
                         dismiss()
+                    } label: {
+                        Text("Add")
+                            .fontWeight(.semibold)
+                            .foregroundColor(
+                                title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? Color("TextDisabled")
+                                : Color("Primary")
+                            )
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
         .background(Color("Background").ignoresSafeArea())
+    }
+}
+
+extension View {
+    func placeholder(_ text: String,
+                     when shouldShow: Bool,
+                     color: Color = Color("TextSecondary")) -> some View {
+        ZStack(alignment: .leading) {
+            if shouldShow {
+                Text(text)
+                    .foregroundColor(color)
+            }
+            self
+        }
     }
 }
 
@@ -494,10 +582,17 @@ struct HabitEditView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Basics") {
+                Section {
                     TextField("Title", text: $title)
+                        .placeholder("Title", when: title.isEmpty)
+                        .foregroundColor(Color("TextPrimary"))
+                        .tint(Color("Primary"))
+                        .listRowBackground(Color("Surface"))
                     TextField("Description", text: $descriptionText, axis: .vertical)
                         .lineLimit(1...3)
+                        .foregroundColor(Color("TextPrimary"))
+                        .tint(Color("Primary"))
+                        .listRowBackground(Color("Surface"))
 
                     Picker("Frequency", selection: $frequency) {
                         Text("Daily").tag("daily")
@@ -505,23 +600,70 @@ struct HabitEditView: View {
                         Text("Monthly").tag("monthly")
                     }
                     .pickerStyle(.segmented)
+                    .tint(Color("Primary"))
+                    .listRowBackground(Color("Surface"))
 
                     TextField("Reminder (e.g. 07:00 AM)", text: $reminderTime)
+                        .placeholder("Reminder (e.g. 07:00 AM)", when: reminderTime.isEmpty)
+                        .textInputAutocapitalization(.never)
+                        .foregroundColor(Color("TextPrimary"))
+                        .tint(Color("Primary"))
+                        .listRowBackground(Color("Surface"))
+                }
+                header: {
+                    Text("Basic")
+                        .foregroundColor(Color("TextSecondary"))
                 }
 
-                Section("Dates") {
-                    DatePicker("Start", selection: $startDate, displayedComponents: .date)
-                    Toggle("Set end date", isOn: $hasEndDate.animation())
+                Section() {
+                    LabeledContent {
+                        DatePicker("", selection: $startDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .tint(Color("Primary"))
+                            .foregroundColor(.white)   // makes the date text white
+                            
+                    } label: {
+                        Text("Start").foregroundColor(Color("TextSecondary"))
+                    }
+                    .listRowBackground(Color("Surface"))
+                    
+                    Toggle(isOn: $hasEndDate.animation()) {
+                        Text("Set end date").foregroundColor(Color("TextPrimary"))
+                    }
+                    .tint(Color("Primary"))
+                    .listRowBackground(Color("Surface"))
+                    
                     if hasEndDate {
-                        DatePicker("End", selection: Binding(
-                            get: { endDate ?? Date() },
-                            set: { endDate = $0 }
-                        ), displayedComponents: .date)
+                        LabeledContent {
+                            DatePicker("",
+                                       selection: Binding(
+                                           get: { endDate ?? Date() },
+                                           set: { endDate = $0 }
+                                       ),
+                                       displayedComponents: .date)
+                            .labelsHidden()
+                            .tint(Color("Primary"))
+                        } label: {
+                            Text("End").foregroundColor(Color("TextSecondary"))
+                        }
+                        .listRowBackground(Color("Surface"))
                     }
                 }
+                header: {
+                    Text("Dates")
+                        .foregroundColor(Color("TextSecondary"))
+                }
 
-                Section("Status") {
-                    Toggle("Accepted", isOn: $isAccepted)
+                Section() {
+                    Toggle(isOn: $isAccepted) {
+                        Text("Accepted").foregroundColor(Color("TextPrimary"))
+                    }
+                    .tint(Color("Primary"))
+                    .listRowBackground(Color("Surface"))
+                }
+                header: {
+                    Text("Status")
+                        .foregroundColor(Color("TextSecondary"))
                 }
 
                 Section {
@@ -529,8 +671,22 @@ struct HabitEditView: View {
                         onDelete()
                         dismiss()
                     } label: {
-                        HStack { Spacer(); Text("Delete Habit"); Spacer() }
+                        HStack {
+                            Image(systemName: "trash.fill")
+                            Text("Delete Habit")
+                                .font(.body.weight(.semibold))
+                        }
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity) // center horizontally
+                        .padding(.vertical, 12)
+                        .background(Color("Surface"))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(.red.opacity(0.4), lineWidth: 1)
+                        )
                     }
+                    .listRowBackground(Color("Background"))
                 }
             }
             .scrollContentBackground(.hidden)
@@ -590,6 +746,66 @@ extension Habit {
         let twoDaysAgo = cal.date(byAdding: .day, value: -2, to: today)!
 
         return [
+            Habit(
+                id: "h1",
+                title: "Morning Run",
+                description: "Run at least 2km",
+                createdAt: twoDaysAgo,
+                updatedAt: nil,
+                startDate: twoDaysAgo,
+                endDate: nil,
+                frequency: "daily",
+                reminderTime: "07:00 AM",
+                streak: Streak(current: 5, longest: 12, lastCompletedDate: yesterday),
+                completions: [Completion(date: today)],
+                isDeleted: false,
+                isAccepted: true
+            ),
+            Habit(
+                id: "h2",
+                title: "Read Book",
+                description: "Read 20 pages of non-fiction",
+                createdAt: twoDaysAgo,
+                updatedAt: nil,
+                startDate: twoDaysAgo,
+                endDate: nil,
+                frequency: "daily",
+                reminderTime: "09:00 PM",
+                streak: Streak(current: 2, longest: 4, lastCompletedDate: twoDaysAgo),
+                completions: [],
+                isDeleted: false,
+                isAccepted: true
+            ),
+            Habit(
+                id: "h3",
+                title: "Meditation",
+                description: "15 minutes mindfulness practice",
+                createdAt: twoDaysAgo,
+                updatedAt: nil,
+                startDate: twoDaysAgo,
+                endDate: nil,
+                frequency: "weekly",
+                reminderTime: nil,
+                streak: Streak(current: 0, longest: 3, lastCompletedDate: nil),
+                completions: [],
+                isDeleted: false,
+                isAccepted: false
+            ),
+            Habit(
+                id: "h4",
+                title: "Stretching Routine",
+                description: "5-minute mobility",
+                createdAt: twoDaysAgo,
+                updatedAt: nil,
+                startDate: twoDaysAgo,
+                endDate: nil,
+                frequency: "monthly",
+                reminderTime: "08:00 AM",
+                streak: Streak(current: 1, longest: 2, lastCompletedDate: twoDaysAgo),
+                completions: [],
+                isDeleted: false,
+                isAccepted: true
+            ),
             Habit(
                 id: "h1",
                 title: "Morning Run",

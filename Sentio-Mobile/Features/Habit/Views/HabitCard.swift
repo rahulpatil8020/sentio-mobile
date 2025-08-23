@@ -2,11 +2,21 @@ import SwiftUI
 
 // MARK: - Card
 struct HabitCard: View {
-    let completed: Int
-    let total: Int
-    let habits: [Habit] // pass today's/suggested habits
+    let habits: [Habit] // only pass the list
 
     @State private var showDetails = false
+
+    // MARK: - Derived values
+    private var total: Int { habits.count }
+
+    private var completed: Int {
+        let cal = Calendar.current
+        return habits.filter { h in
+            if let last = h.streak.lastCompletedDate,
+               cal.isDateInToday(last) { return true }
+            return h.completions.contains { cal.isDateInToday($0.date) }
+        }.count
+    }
 
     private var progress: Double {
         total == 0 ? 0 : Double(completed) / Double(total)
@@ -24,9 +34,7 @@ struct HabitCard: View {
     }
 
     var body: some View {
-        Button {
-            showDetails = true
-        } label: {
+        Button { showDetails = true } label: {
             VStack(alignment: .center, spacing: 12) {
                 Text("Track your Habits")
                     .font(.headline)
@@ -139,24 +147,16 @@ extension Habit {
 // MARK: - Previews
 #Preview("With Habits") {
     VStack {
-        HabitCard(
-            completed: 1,
-            total: 2,
-            habits: Habit.sampleHabits
-        )
-        .padding()
+        HabitCard(habits: Habit.sampleHabits)
+            .padding()
     }
     .environment(\.colorScheme, .dark)
 }
 
 #Preview("Empty Habits") {
     VStack {
-        HabitCard(
-            completed: 0,
-            total: 0,
-            habits: []
-        )
-        .padding()
+        HabitCard(habits: [])
+            .padding()
     }
     .environment(\.colorScheme, .dark)
 }

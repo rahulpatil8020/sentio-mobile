@@ -45,8 +45,6 @@ struct HomeView: View {
                                 // Habits
                                 let habits = appState.habits.filter { !$0.isDeleted }
                                 HabitCard(
-                                    completed: habitsCompletedTodayCount(habits),
-                                    total: habits.count,
                                     habits: habits
                                 )
 
