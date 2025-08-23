@@ -1,15 +1,12 @@
 import SwiftUI
 
-// MARK: - Habits Detail
 struct HabitsDetailView: View {
     @Environment(\.dismiss) private var dismiss
-    // Read the selected day from AppState so rows can evaluate completion for that specific date
     @ObservedObject private var appState = AppState.shared
 
-    // Local mutable copy for UX
     @State private var habits: [Habit]
-    @State private var selectedHabit: Habit? = nil   // used by sheet(item:)
-    @State private var showAddSheet = false          // Add habit
+    @State private var selectedHabit: Habit? = nil
+    @State private var showAddSheet = false
 
     init(initialHabits: [Habit]) {
         _habits = State(initialValue: initialHabits)
@@ -19,7 +16,6 @@ struct HabitsDetailView: View {
         habits.filter { !$0.isDeleted }
     }
 
-    // Sort: pending first → frequency → title
     private var sortedHabits: [Habit] {
         activeHabits.sorted { a, b in
             if a.isAccepted != b.isAccepted { return a.isAccepted == false }
@@ -33,42 +29,13 @@ struct HabitsDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if activeHabits.isEmpty {
-                        VStack(spacing: 16) {
-                            Image(systemName: "leaf.circle")
-                                .font(.system(size: 44))
-                                .foregroundColor(Color("TextSecondary"))
-                            Text("No active habits")
-                                .font(.title3.bold())
-                                .foregroundColor(Color("TextPrimary"))
-                            Text("Accepted habits appear here. You can accept or reject suggestions anytime, or add your own.")
-                                .font(.subheadline)
-                                .foregroundColor(Color("TextSecondary"))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-
-                            Button {
-                                showAddSheet = true
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "plus.circle.fill")
-                                    Text("Add a habit")
-                                }
-                                .font(.callout.weight(.semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(Color("Primary"))
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 48)
+                        EmptyHabitsView(onAdd: { showAddSheet = true })
+                            .padding(.top, 48)
                     } else {
                         ForEach(sortedHabits) { habit in
                             HabitRow(
                                 habit: habit,
-                                day: appState.selectedDate, // 👈 evaluate/toggle against selected date
+                                day: appState.selectedDate,
                                 onAccept: { handleAccept(habitID: habit.id) },
                                 onReject: { handleReject(habitID: habit.id) },
                                 onCompleteToggle: { handleToggleComplete(on: appState.selectedDate, habitID: habit.id) },
@@ -89,24 +56,17 @@ struct HabitsDetailView: View {
                     Button("Close") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showAddSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.body.weight(.bold))
+                    Button { showAddSheet = true } label: {
+                        Image(systemName: "plus").font(.body.weight(.bold))
                     }
                     .accessibilityLabel("Add Habit")
                 }
             }
-            // Add Habit Sheet
             .sheet(isPresented: $showAddSheet) {
-                AddHabitSheet { newHabit in
-                    habits.append(newHabit)
-                }
-                .presentationDetents([.medium, .large])
-                .background(Color("Background").ignoresSafeArea())
+                AddHabitSheet { newHabit in habits.append(newHabit) }
+                    .presentationDetents([.medium, .large])
+                    .background(Color("Background").ignoresSafeArea())
             }
-            // Edit Sheet (item:)
             .sheet(item: $selectedHabit) { habit in
                 if let idx = habits.firstIndex(where: { $0.id == habit.id }) {
                     HabitEditView(
@@ -137,7 +97,7 @@ struct HabitsDetailView: View {
         .background(Color("Background").ignoresSafeArea())
     }
 
-    // MARK: - Actions (local; replace with backend calls)
+    // MARK: - Local actions (replace with backend calls when wiring)
     private func handleAccept(habitID: String) {
         guard let idx = habits.firstIndex(where: { $0.id == habitID }) else { return }
         let h = habits[idx]
@@ -165,8 +125,7 @@ struct HabitsDetailView: View {
     }
 
     /// Toggle complete for the **selected day**.
-    /// - If day is today: update completions and *also* maintain streak fields (current/longest/lastCompletedDate).
-    /// - Else: update the completion list only (leave streak as-is; server or nightly recompute can adjust).
+    /// If day is today → also adjusts streak; otherwise only touches completions.
     private func handleToggleComplete(on day: Date, habitID: String) {
         guard let idx = habits.firstIndex(where: { $0.id == habitID }) else { return }
         var h = habits[idx]
@@ -179,11 +138,8 @@ struct HabitsDetailView: View {
             || (h.streak.lastCompletedDate.map { cal.isDate($0, inSameDayAs: startOfDay) } ?? false)
 
         if hasForDay {
-            // Remove that day's completion
             var comps = h.completions.filter { !cal.isDate($0.date, inSameDayAs: startOfDay) }
-
             if cal.isDateInToday(day) {
-                // Maintain streak counters only if toggling today
                 let newCurrent = max(0, h.streak.current - 1)
                 h = Habit(
                     id: h.id, title: h.title, description: h.description,
@@ -195,7 +151,6 @@ struct HabitsDetailView: View {
                     isDeleted: h.isDeleted, isAccepted: h.isAccepted
                 )
             } else {
-                // Don't touch streak; just update completions
                 h = Habit(
                     id: h.id, title: h.title, description: h.description,
                     createdAt: h.createdAt, updatedAt: Date(),
@@ -209,7 +164,6 @@ struct HabitsDetailView: View {
         } else {
             var comps = h.completions
             comps.append(Completion(date: startOfDay))
-
             if cal.isDateInToday(day) {
                 let newCurrent = h.streak.current + 1
                 let newLongest = max(h.streak.longest, newCurrent)
@@ -234,7 +188,6 @@ struct HabitsDetailView: View {
                 )
             }
         }
-
         habits[idx] = h
     }
 
@@ -252,618 +205,36 @@ struct HabitsDetailView: View {
     }
 }
 
-// MARK: - Add Habit Sheet
-struct AddHabitSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var title: String = ""
-    @State private var descriptionText: String = ""
-    @State private var frequency: String = "daily"
-    @State private var reminderTime: String = ""     // free-form e.g., "07:00 AM"
-    @State private var startDate: Date = Date()
-    @State private var endDate: Date? = nil
-    @State private var hasEndDate: Bool = false
-    @State private var isAccepted: Bool = true       // default accepted
-
-    let onAdd: (Habit) -> Void
-
+// MARK: - Small empty state view
+private struct EmptyHabitsView: View {
+    let onAdd: () -> Void
     var body: some View {
-        NavigationStack {
-            Form {
-                // Basics
-                Section {
-                    TextField("", text: $title)
-                        .placeholder("Title", when: title.isEmpty)
-                        .foregroundColor(Color("TextPrimary"))
-                        .tint(Color("Primary"))
-                        .listRowBackground(Color("Surface"))
-
-                    TextField("", text: $descriptionText, axis: .vertical)
-                        .placeholder("Description (optional)", when: descriptionText.isEmpty)
-                        .lineLimit(1...3)
-                        .foregroundColor(Color("TextPrimary"))
-                        .tint(Color("Primary"))
-                        .listRowBackground(Color("Surface"))
-
-                    Picker("Frequency", selection: $frequency) {
-                        Text("Daily").tag("daily")
-                        Text("Weekly").tag("weekly")
-                        Text("Monthly").tag("monthly")
-                    }
-                    .pickerStyle(.segmented)
-                    .tint(Color("Primary"))
-                    .listRowBackground(Color("Surface"))
-
-                    TextField("", text: $reminderTime)
-                        .placeholder("Reminder (e.g. 07:00 AM)", when: reminderTime.isEmpty)
-                        .textInputAutocapitalization(.never)
-                        .foregroundColor(Color("TextPrimary"))
-                        .tint(Color("Primary"))
-                        .listRowBackground(Color("Surface"))
-                } header: {
-                    Text("Basics").foregroundColor(Color("TextSecondary"))
+        VStack(spacing: 16) {
+            Image(systemName: "leaf.circle")
+                .font(.system(size: 44))
+                .foregroundColor(Color("TextSecondary"))
+            Text("No active habits")
+                .font(.title3.bold())
+                .foregroundColor(Color("TextPrimary"))
+            Text("Accepted habits appear here. You can accept or reject suggestions anytime, or add your own.")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            Button(action: onAdd) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add a habit")
                 }
-
-                // Dates
-                Section {
-                    LabeledContent {
-                        DatePicker("", selection: $startDate, displayedComponents: .date)
-                            .labelsHidden()
-                            .tint(Color("Primary"))
-                    } label: {
-                        Text("Start").foregroundColor(Color("TextSecondary"))
-                    }
-                    .listRowBackground(Color("Surface"))
-
-                    Toggle(isOn: $hasEndDate.animation()) {
-                        Text("Set end date").foregroundColor(Color("TextPrimary"))
-                    }
-                    .tint(Color("Primary"))
-                    .listRowBackground(Color("Surface"))
-
-                    if hasEndDate {
-                        LabeledContent {
-                            DatePicker("",
-                                       selection: Binding(
-                                           get: { endDate ?? Date() },
-                                           set: { endDate = $0 }
-                                       ),
-                                       displayedComponents: .date)
-                            .labelsHidden()
-                            .tint(Color("Primary"))
-                        } label: {
-                            Text("End").foregroundColor(Color("TextSecondary"))
-                        }
-                        .listRowBackground(Color("Surface"))
-                    }
-                } header: {
-                    Text("Dates").foregroundColor(Color("TextSecondary"))
-                }
-
-                // Status
-                Section {
-                    Toggle(isOn: $isAccepted) {
-                        Text("Accepted").foregroundColor(Color("TextPrimary"))
-                    }
-                    .tint(Color("Primary"))
-                    .listRowBackground(Color("Surface"))
-                } header: {
-                    Text("Status").foregroundColor(Color("TextSecondary"))
-                }
+                .font(.callout.weight(.semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color("Primary"))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
-            .scrollContentBackground(.hidden)
-            .background(Color("Background").ignoresSafeArea())
-            .navigationTitle("New Habit")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        let newHabit = Habit(
-                            id: UUID().uuidString,
-                            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                            description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                            createdAt: Date(),
-                            updatedAt: nil,
-                            startDate: startDate,
-                            endDate: hasEndDate ? endDate : nil,
-                            frequency: frequency,
-                            reminderTime: reminderTime.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                            streak: Streak(current: 0, longest: 0, lastCompletedDate: nil),
-                            completions: [],
-                            isDeleted: false,
-                            isAccepted: isAccepted
-                        )
-                        onAdd(newHabit)
-                        dismiss()
-                    } label: {
-                        Text("Add")
-                            .fontWeight(.semibold)
-                            .foregroundColor(
-                                title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                ? Color("TextDisabled")
-                                : Color("Primary")
-                            )
-                    }
-                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
+            .buttonStyle(.plain)
         }
-        .background(Color("Background").ignoresSafeArea())
+        .frame(maxWidth: .infinity)
     }
-}
-
-// MARK: - Placeholder helper
-extension View {
-    func placeholder(_ text: String,
-                     when shouldShow: Bool,
-                     color: Color = Color("TextSecondary")) -> some View {
-        ZStack(alignment: .leading) {
-            if shouldShow {
-                Text(text)
-                    .foregroundColor(color)
-            }
-            self
-        }
-    }
-}
-
-// MARK: - Badges
-struct StreakBadge: View {
-    let text: String
-    let color: Color
-
-    var body: some View {
-        Text(text)
-            .font(.caption2.weight(.bold))
-            .foregroundColor(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(color.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-}
-
-struct FrequencyBadge: View {
-    let text: String
-
-    var body: some View {
-        let color: Color = {
-            switch text.lowercased() {
-            case "daily": return .teal
-            case "weekly": return .orange
-            case "monthly": return .purple
-            default: return .gray
-            }
-        }()
-        return Text(text.capitalized)
-            .font(.caption2.weight(.bold))
-            .foregroundColor(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(color.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-}
-
-// MARK: - Row (date-aware)
-struct HabitRow: View {
-    let habit: Habit
-    let day: Date                       // 👈 which day we’re looking at
-    let onAccept: () -> Void
-    let onReject: () -> Void
-    let onCompleteToggle: () -> Void
-    let onOpenDetails: () -> Void
-
-    private var completedOnDay: Bool {
-        let cal = Calendar.current
-        // Check streak.lastCompletedDate OR completions array for this specific day
-        if let last = habit.streak.lastCompletedDate, cal.isDate(last, inSameDayAs: day) { return true }
-        return habit.completions.contains { cal.isDate($0.date, inSameDayAs: day) }
-    }
-
-    var body: some View {
-        VStack(spacing: 10) {
-            // Row 1: Title + actions
-            HStack(spacing: 12) {
-                // Left indicator:
-                if habit.isAccepted {
-                    Button(action: onCompleteToggle) {
-                        Circle()
-                            .fill(completedOnDay ? Color.green.opacity(0.8) : Color.gray.opacity(0.35))
-                            .frame(width: 26, height: 26)
-                            .overlay(
-                                Image(systemName: completedOnDay ? "checkmark" : "plus")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.white.opacity(0.95))
-                            )
-                            .accessibilityLabel(completedOnDay ? "Mark incomplete" : "Mark complete")
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Circle()
-                        .fill(Color.gray.opacity(0.35))
-                        .frame(width: 26, height: 26)
-                        .overlay(Text("⏳").font(.system(size: 11)))
-                        .accessibilityHidden(true)
-                }
-
-                // Title (tap to open details)
-                Button(action: onOpenDetails) {
-                    Text(habit.title)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(Color("TextPrimary"))
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-
-                // Right side: pending actions or chevron
-                if habit.isAccepted {
-                    Button(action: onOpenDetails) {
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(Color("TextSecondary"))
-                    }.buttonStyle(.plain)
-                } else {
-                    HStack(spacing: 8) {
-                        Button(action: onReject) {
-                            Text("Reject")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 6)
-                                .background(Color.red.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        }
-                        Button(action: onAccept) {
-                            Text("Accept")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(.green)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 6)
-                                .background(Color.green.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        }
-                    }
-                }
-            }
-
-            // Row 2: Badges (under the title)
-            HStack(spacing: 8) {
-                FrequencyBadge(text: habit.frequency)
-                if habit.streak.current > 0 {
-                    StreakBadge(text: "🔥 \(habit.streak.current)", color: .red)
-                }
-                if habit.streak.longest > 0 {
-                    StreakBadge(text: "🏆 \(habit.streak.longest)", color: .yellow)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Row 3: meta (reminder, description, last completed)
-            HStack(spacing: 8) {
-                if let time = habit.reminderTime, !time.isEmpty {
-                    Label(time, systemImage: "bell")
-                        .font(.caption)
-                        .foregroundColor(Color("TextSecondary"))
-                }
-                if let desc = habit.description, !desc.isEmpty {
-                    Text("• \(desc)")
-                        .font(.caption)
-                        .foregroundColor(Color("TextSecondary"))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                if let last = habit.streak.lastCompletedDate {
-                    Text("• Last: \(last.formatted(date: .abbreviated, time: .omitted))")
-                        .font(.caption)
-                        .foregroundColor(Color("TextSecondary"))
-                        .lineLimit(1)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Row 4: dates (start/end)
-            HStack(spacing: 12) {
-                Label("Start \(habit.startDate.formatted(date: .abbreviated, time: .omitted))", systemImage: "calendar.badge.plus")
-                    .font(.caption2)
-                    .foregroundColor(Color("TextSecondary"))
-
-                if let end = habit.endDate {
-                    Label("Ends \(end.formatted(date: .abbreviated, time: .omitted))", systemImage: "calendar.badge.minus")
-                        .font(.caption2)
-                        .foregroundColor(Color("TextSecondary"))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color("Surface"))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-}
-
-// MARK: - Edit Habit
-struct HabitEditView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @State var habit: Habit
-    let onSave: (Habit) -> Void
-    let onDelete: () -> Void
-
-    @State private var title: String = ""
-    @State private var descriptionText: String = ""
-    @State private var frequency: String = "daily"
-    @State private var reminderTime: String = ""
-    @State private var startDate: Date = Date()
-    @State private var endDate: Date? = nil
-    @State private var hasEndDate: Bool = false
-    @State private var isAccepted: Bool = true
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("", text: $title)
-                        .placeholder("Title", when: title.isEmpty)
-                        .foregroundColor(Color("TextPrimary"))
-                        .tint(Color("Primary"))
-                        .listRowBackground(Color("Surface"))
-
-                    TextField("", text: $descriptionText, axis: .vertical)
-                        .placeholder("Description", when: descriptionText.isEmpty)
-                        .lineLimit(1...3)
-                        .foregroundColor(Color("TextPrimary"))
-                        .tint(Color("Primary"))
-                        .listRowBackground(Color("Surface"))
-
-                    Picker("Frequency", selection: $frequency) {
-                        Text("Daily").tag("daily")
-                        Text("Weekly").tag("weekly")
-                        Text("Monthly").tag("monthly")
-                    }
-                    .pickerStyle(.segmented)
-                    .tint(Color("Primary"))
-                    .listRowBackground(Color("Surface"))
-
-                    TextField("", text: $reminderTime)
-                        .placeholder("Reminder (e.g. 07:00 AM)", when: reminderTime.isEmpty)
-                        .textInputAutocapitalization(.never)
-                        .foregroundColor(Color("TextPrimary"))
-                        .tint(Color("Primary"))
-                        .listRowBackground(Color("Surface"))
-                } header: {
-                    Text("Basic").foregroundColor(Color("TextSecondary"))
-                }
-
-                Section {
-                    LabeledContent {
-                        DatePicker("", selection: $startDate, displayedComponents: .date)
-                            .labelsHidden()
-                            .tint(Color("Primary"))
-                    } label: {
-                        Text("Start").foregroundColor(Color("TextSecondary"))
-                    }
-                    .listRowBackground(Color("Surface"))
-
-                    Toggle(isOn: $hasEndDate.animation()) {
-                        Text("Set end date").foregroundColor(Color("TextPrimary"))
-                    }
-                    .tint(Color("Primary"))
-                    .listRowBackground(Color("Surface"))
-
-                    if hasEndDate {
-                        LabeledContent {
-                            DatePicker("",
-                                       selection: Binding(
-                                           get: { endDate ?? Date() },
-                                           set: { endDate = $0 }
-                                       ),
-                                       displayedComponents: .date)
-                            .labelsHidden()
-                            .tint(Color("Primary"))
-                        } label: {
-                            Text("End").foregroundColor(Color("TextSecondary"))
-                        }
-                        .listRowBackground(Color("Surface"))
-                    }
-                } header: {
-                    Text("Dates").foregroundColor(Color("TextSecondary"))
-                }
-
-                Section {
-                    Toggle(isOn: $isAccepted) {
-                        Text("Accepted").foregroundColor(Color("TextPrimary"))
-                    }
-                    .tint(Color("Primary"))
-                    .listRowBackground(Color("Surface"))
-                } header: {
-                    Text("Status").foregroundColor(Color("TextSecondary"))
-                }
-
-                Section {
-                    Button(role: .destructive) {
-                        onDelete()
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Image(systemName: "trash.fill")
-                            Text("Delete Habit")
-                                .font(.body.weight(.semibold))
-                        }
-                        .foregroundColor(.red)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color("Surface"))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(.red.opacity(0.4), lineWidth: 1)
-                        )
-                    }
-                    .listRowBackground(Color("Background"))
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(Color("Background").ignoresSafeArea())
-            .navigationTitle("Edit Habit")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let updated = Habit(
-                            id: habit.id,
-                            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                            description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                            createdAt: habit.createdAt,
-                            updatedAt: Date(),
-                            startDate: startDate,
-                            endDate: hasEndDate ? endDate : nil,
-                            frequency: frequency,
-                            reminderTime: reminderTime.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                            streak: habit.streak,
-                            completions: habit.completions,
-                            isDeleted: habit.isDeleted,
-                            isAccepted: isAccepted
-                        )
-                        onSave(updated)
-                        dismiss()
-                    }
-                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-        .onAppear {
-            title = habit.title
-            descriptionText = habit.description ?? ""
-            frequency = habit.frequency
-            reminderTime = habit.reminderTime ?? ""
-            startDate = habit.startDate
-            endDate = habit.endDate
-            hasEndDate = habit.endDate != nil
-            isAccepted = habit.isAccepted
-        }
-    }
-}
-
-private extension String {
-    var nilIfEmpty: String? { isEmpty ? nil : self }
-}
-
-// MARK: - Mock Data for Previews
-extension Habit {
-    static var previewHabits: [Habit] {
-        let cal = Calendar.current
-        let today = Date()
-        let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
-        let twoDaysAgo = cal.date(byAdding: .day, value: -2, to: today)!
-
-        return [
-            Habit(
-                id: "h1",
-                title: "Morning Run",
-                description: "Run at least 2km",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
-                frequency: "daily",
-                reminderTime: "07:00 AM",
-                streak: Streak(current: 5, longest: 12, lastCompletedDate: yesterday),
-                completions: [Completion(date: today), Completion(date: twoDaysAgo)],
-                isDeleted: false,
-                isAccepted: true
-            ),
-            Habit(
-                id: "h2",
-                title: "Read Book",
-                description: "Read 20 pages of non-fiction",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
-                frequency: "daily",
-                reminderTime: "09:00 PM",
-                streak: Streak(current: 2, longest: 4, lastCompletedDate: twoDaysAgo),
-                completions: [Completion(date: yesterday)],
-                isDeleted: false,
-                isAccepted: true
-            ),
-            Habit(
-                id: "h3",
-                title: "Meditation",
-                description: "15 minutes mindfulness practice",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
-                frequency: "weekly",
-                reminderTime: nil,
-                streak: Streak(current: 0, longest: 3, lastCompletedDate: nil),
-                completions: [],
-                isDeleted: false,
-                isAccepted: false
-            ),
-            Habit(
-                id: "h4",
-                title: "Stretching Routine",
-                description: "5-minute mobility",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
-                frequency: "monthly",
-                reminderTime: "08:00 AM",
-                streak: Streak(current: 1, longest: 2, lastCompletedDate: twoDaysAgo),
-                completions: [],
-                isDeleted: false,
-                isAccepted: true
-            )
-        ]
-    }
-}
-
-// MARK: - Previews
-#Preview("Habits Fullscreen") {
-    HabitsDetailView(initialHabits: Habit.previewHabits)
-        .environment(\.colorScheme, .dark)
-}
-
-#Preview("Habit Row - Accepted") {
-    let day = Date() // today
-    return HabitRow(
-        habit: Habit.previewHabits.first!,
-        day: day,
-        onAccept: {},
-        onReject: {},
-        onCompleteToggle: {},
-        onOpenDetails: {}
-    )
-    .padding()
-    .background(Color("Background"))
-    .environment(\.colorScheme, .dark)
-}
-
-#Preview("Habit Row - Pending") {
-    let pending = Habit.previewHabits.first { !$0.isAccepted }!
-    return HabitRow(
-        habit: pending,
-        day: Date(),
-        onAccept: {},
-        onReject: {},
-        onCompleteToggle: {},
-        onOpenDetails: {}
-    )
-    .padding()
-    .background(Color("Background"))
-    .environment(\.colorScheme, .dark)
-}
-
-#Preview("Empty State + Add") {
-    HabitsDetailView(initialHabits: [])
-        .environment(\.colorScheme, .dark)
 }
