@@ -1,12 +1,15 @@
 import SwiftUI
 
+// MARK: - Habits Detail
 struct HabitsDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    // Read the selected day from AppState so rows can evaluate completion for that specific date
+    @ObservedObject private var appState = AppState.shared
 
     // Local mutable copy for UX
     @State private var habits: [Habit]
     @State private var selectedHabit: Habit? = nil   // used by sheet(item:)
-    @State private var showAddSheet = false          // ✅ Add habit
+    @State private var showAddSheet = false          // Add habit
 
     init(initialHabits: [Habit]) {
         _habits = State(initialValue: initialHabits)
@@ -54,7 +57,7 @@ struct HabitsDetailView: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
-                                .background(Color.accentColor)
+                                .background(Color("Primary"))
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
                             .buttonStyle(.plain)
@@ -65,9 +68,10 @@ struct HabitsDetailView: View {
                         ForEach(sortedHabits) { habit in
                             HabitRow(
                                 habit: habit,
+                                day: appState.selectedDate, // 👈 evaluate/toggle against selected date
                                 onAccept: { handleAccept(habitID: habit.id) },
                                 onReject: { handleReject(habitID: habit.id) },
-                                onCompleteToggle: { handleToggleCompleteToday(habitID: habit.id) },
+                                onCompleteToggle: { handleToggleComplete(on: appState.selectedDate, habitID: habit.id) },
                                 onOpenDetails: { selectedHabit = habit }
                             )
                         }
@@ -94,7 +98,7 @@ struct HabitsDetailView: View {
                     .accessibilityLabel("Add Habit")
                 }
             }
-            // ✅ Add Habit Sheet (always available)
+            // Add Habit Sheet
             .sheet(isPresented: $showAddSheet) {
                 AddHabitSheet { newHabit in
                     habits.append(newHabit)
@@ -102,7 +106,7 @@ struct HabitsDetailView: View {
                 .presentationDetents([.medium, .large])
                 .background(Color("Background").ignoresSafeArea())
             }
-            // ✅ Edit Sheet (item:)
+            // Edit Sheet (item:)
             .sheet(item: $selectedHabit) { habit in
                 if let idx = habits.firstIndex(where: { $0.id == habit.id }) {
                     HabitEditView(
@@ -160,45 +164,77 @@ struct HabitsDetailView: View {
         )
     }
 
-    // Toggle complete for today (accepted habits only; guard in row too)
-    private func handleToggleCompleteToday(habitID: String) {
+    /// Toggle complete for the **selected day**.
+    /// - If day is today: update completions and *also* maintain streak fields (current/longest/lastCompletedDate).
+    /// - Else: update the completion list only (leave streak as-is; server or nightly recompute can adjust).
+    private func handleToggleComplete(on day: Date, habitID: String) {
         guard let idx = habits.firstIndex(where: { $0.id == habitID }) else { return }
         var h = habits[idx]
-        guard h.isAccepted else { return } // extra guard
+        guard h.isAccepted else { return }
 
         let cal = Calendar.current
-        let today = Date()
-        let hasToday = h.completions.contains { cal.isDateInToday($0.date) }
-            || (h.streak.lastCompletedDate.map { cal.isDateInToday($0) } ?? false)
+        let startOfDay = cal.startOfDay(for: day)
 
-        if hasToday {
-            // Remove today's completion
-            var comps = h.completions.filter { !cal.isDateInToday($0.date) }
-            let newCurrent = max(0, h.streak.current - 1)
-            h = Habit(
-                id: h.id, title: h.title, description: h.description,
-                createdAt: h.createdAt, updatedAt: Date(),
-                startDate: h.startDate, endDate: h.endDate,
-                frequency: h.frequency, reminderTime: h.reminderTime,
-                streak: Streak(current: newCurrent, longest: h.streak.longest, lastCompletedDate: mostRecentDate(in: comps)),
-                completions: comps,
-                isDeleted: h.isDeleted, isAccepted: h.isAccepted
-            )
+        let hasForDay = h.completions.contains { cal.isDate($0.date, inSameDayAs: startOfDay) }
+            || (h.streak.lastCompletedDate.map { cal.isDate($0, inSameDayAs: startOfDay) } ?? false)
+
+        if hasForDay {
+            // Remove that day's completion
+            var comps = h.completions.filter { !cal.isDate($0.date, inSameDayAs: startOfDay) }
+
+            if cal.isDateInToday(day) {
+                // Maintain streak counters only if toggling today
+                let newCurrent = max(0, h.streak.current - 1)
+                h = Habit(
+                    id: h.id, title: h.title, description: h.description,
+                    createdAt: h.createdAt, updatedAt: Date(),
+                    startDate: h.startDate, endDate: h.endDate,
+                    frequency: h.frequency, reminderTime: h.reminderTime,
+                    streak: Streak(current: newCurrent, longest: h.streak.longest, lastCompletedDate: mostRecentDate(in: comps)),
+                    completions: comps,
+                    isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                )
+            } else {
+                // Don't touch streak; just update completions
+                h = Habit(
+                    id: h.id, title: h.title, description: h.description,
+                    createdAt: h.createdAt, updatedAt: Date(),
+                    startDate: h.startDate, endDate: h.endDate,
+                    frequency: h.frequency, reminderTime: h.reminderTime,
+                    streak: h.streak,
+                    completions: comps,
+                    isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                )
+            }
         } else {
             var comps = h.completions
-            comps.append(Completion(date: today))
-            let newCurrent = h.streak.current + 1
-            let newLongest = max(h.streak.longest, newCurrent)
-            h = Habit(
-                id: h.id, title: h.title, description: h.description,
-                createdAt: h.createdAt, updatedAt: Date(),
-                startDate: h.startDate, endDate: h.endDate,
-                frequency: h.frequency, reminderTime: h.reminderTime,
-                streak: Streak(current: newCurrent, longest: newLongest, lastCompletedDate: today),
-                completions: comps,
-                isDeleted: h.isDeleted, isAccepted: h.isAccepted
-            )
+            comps.append(Completion(date: startOfDay))
+
+            if cal.isDateInToday(day) {
+                let newCurrent = h.streak.current + 1
+                let newLongest = max(h.streak.longest, newCurrent)
+                h = Habit(
+                    id: h.id, title: h.title, description: h.description,
+                    createdAt: h.createdAt, updatedAt: Date(),
+                    startDate: h.startDate, endDate: h.endDate,
+                    frequency: h.frequency, reminderTime: h.reminderTime,
+                    streak: Streak(current: newCurrent, longest: newLongest, lastCompletedDate: startOfDay),
+                    completions: comps,
+                    isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                )
+            } else {
+                h = Habit(
+                    id: h.id, title: h.title, description: h.description,
+                    createdAt: h.createdAt, updatedAt: Date(),
+                    startDate: h.startDate, endDate: h.endDate,
+                    frequency: h.frequency, reminderTime: h.reminderTime,
+                    streak: h.streak,
+                    completions: comps,
+                    isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                )
+            }
         }
+
         habits[idx] = h
     }
 
@@ -234,16 +270,14 @@ struct AddHabitSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                // MARK: Basics
-                Section() {
-                    // Title
+                // Basics
+                Section {
                     TextField("", text: $title)
                         .placeholder("Title", when: title.isEmpty)
                         .foregroundColor(Color("TextPrimary"))
                         .tint(Color("Primary"))
                         .listRowBackground(Color("Surface"))
 
-                    // Description (multiline)
                     TextField("", text: $descriptionText, axis: .vertical)
                         .placeholder("Description (optional)", when: descriptionText.isEmpty)
                         .lineLimit(1...3)
@@ -251,7 +285,6 @@ struct AddHabitSheet: View {
                         .tint(Color("Primary"))
                         .listRowBackground(Color("Surface"))
 
-                    // Frequency (segmented)
                     Picker("Frequency", selection: $frequency) {
                         Text("Daily").tag("daily")
                         Text("Weekly").tag("weekly")
@@ -261,7 +294,6 @@ struct AddHabitSheet: View {
                     .tint(Color("Primary"))
                     .listRowBackground(Color("Surface"))
 
-                    // Reminder
                     TextField("", text: $reminderTime)
                         .placeholder("Reminder (e.g. 07:00 AM)", when: reminderTime.isEmpty)
                         .textInputAutocapitalization(.never)
@@ -269,32 +301,26 @@ struct AddHabitSheet: View {
                         .tint(Color("Primary"))
                         .listRowBackground(Color("Surface"))
                 } header: {
-                    Text("Basics")
-                        .foregroundColor(Color("TextSecondary"))
+                    Text("Basics").foregroundColor(Color("TextSecondary"))
                 }
 
-                // MARK: Dates
-                Section() {
-                    // Start date with colored label
+                // Dates
+                Section {
                     LabeledContent {
                         DatePicker("", selection: $startDate, displayedComponents: .date)
                             .labelsHidden()
                             .tint(Color("Primary"))
-                            .foregroundColor(.white)   // makes the date text white
-                            
                     } label: {
                         Text("Start").foregroundColor(Color("TextSecondary"))
                     }
                     .listRowBackground(Color("Surface"))
 
-                    // End date toggle with colored label
                     Toggle(isOn: $hasEndDate.animation()) {
                         Text("Set end date").foregroundColor(Color("TextPrimary"))
                     }
                     .tint(Color("Primary"))
                     .listRowBackground(Color("Surface"))
 
-                    // Conditional End date row
                     if hasEndDate {
                         LabeledContent {
                             DatePicker("",
@@ -310,24 +336,20 @@ struct AddHabitSheet: View {
                         }
                         .listRowBackground(Color("Surface"))
                     }
+                } header: {
+                    Text("Dates").foregroundColor(Color("TextSecondary"))
                 }
-                header: {
-                       Text("Dates")
-                           .foregroundColor(Color("TextSecondary"))
-                   }
 
-                // MARK: Status
-                Section() {
+                // Status
+                Section {
                     Toggle(isOn: $isAccepted) {
                         Text("Accepted").foregroundColor(Color("TextPrimary"))
                     }
                     .tint(Color("Primary"))
                     .listRowBackground(Color("Surface"))
+                } header: {
+                    Text("Status").foregroundColor(Color("TextSecondary"))
                 }
-                header: {
-                       Text("Status")
-                           .foregroundColor(Color("TextSecondary"))
-                   }
             }
             .scrollContentBackground(.hidden)
             .background(Color("Background").ignoresSafeArea())
@@ -372,6 +394,7 @@ struct AddHabitSheet: View {
     }
 }
 
+// MARK: - Placeholder helper
 extension View {
     func placeholder(_ text: String,
                      when shouldShow: Bool,
@@ -424,18 +447,20 @@ struct FrequencyBadge: View {
     }
 }
 
-// MARK: - Row
+// MARK: - Row (date-aware)
 struct HabitRow: View {
     let habit: Habit
+    let day: Date                       // 👈 which day we’re looking at
     let onAccept: () -> Void
     let onReject: () -> Void
     let onCompleteToggle: () -> Void
     let onOpenDetails: () -> Void
 
-    private var completedToday: Bool {
+    private var completedOnDay: Bool {
         let cal = Calendar.current
-        if let last = habit.streak.lastCompletedDate, cal.isDateInToday(last) { return true }
-        return habit.completions.contains { cal.isDateInToday($0.date) }
+        // Check streak.lastCompletedDate OR completions array for this specific day
+        if let last = habit.streak.lastCompletedDate, cal.isDate(last, inSameDayAs: day) { return true }
+        return habit.completions.contains { cal.isDate($0.date, inSameDayAs: day) }
     }
 
     var body: some View {
@@ -443,19 +468,17 @@ struct HabitRow: View {
             // Row 1: Title + actions
             HStack(spacing: 12) {
                 // Left indicator:
-                // - Accepted: tappable toggle to mark complete/incomplete
-                // - Pending: non-interactive gray dot
                 if habit.isAccepted {
                     Button(action: onCompleteToggle) {
                         Circle()
-                            .fill(completedToday ? Color.green.opacity(0.8) : Color.gray.opacity(0.35))
+                            .fill(completedOnDay ? Color.green.opacity(0.8) : Color.gray.opacity(0.35))
                             .frame(width: 26, height: 26)
                             .overlay(
-                                Image(systemName: completedToday ? "checkmark" : "plus")
+                                Image(systemName: completedOnDay ? "checkmark" : "plus")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(.white.opacity(0.95))
                             )
-                            .accessibilityLabel(completedToday ? "Mark incomplete" : "Mark complete")
+                            .accessibilityLabel(completedOnDay ? "Mark incomplete" : "Mark complete")
                     }
                     .buttonStyle(.plain)
                 } else {
@@ -557,7 +580,7 @@ struct HabitRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.white.opacity(0.06))
+        .background(Color("Surface"))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
@@ -583,12 +606,14 @@ struct HabitEditView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Title", text: $title)
+                    TextField("", text: $title)
                         .placeholder("Title", when: title.isEmpty)
                         .foregroundColor(Color("TextPrimary"))
                         .tint(Color("Primary"))
                         .listRowBackground(Color("Surface"))
-                    TextField("Description", text: $descriptionText, axis: .vertical)
+
+                    TextField("", text: $descriptionText, axis: .vertical)
+                        .placeholder("Description", when: descriptionText.isEmpty)
                         .lineLimit(1...3)
                         .foregroundColor(Color("TextPrimary"))
                         .tint(Color("Primary"))
@@ -603,36 +628,32 @@ struct HabitEditView: View {
                     .tint(Color("Primary"))
                     .listRowBackground(Color("Surface"))
 
-                    TextField("Reminder (e.g. 07:00 AM)", text: $reminderTime)
+                    TextField("", text: $reminderTime)
                         .placeholder("Reminder (e.g. 07:00 AM)", when: reminderTime.isEmpty)
                         .textInputAutocapitalization(.never)
                         .foregroundColor(Color("TextPrimary"))
                         .tint(Color("Primary"))
                         .listRowBackground(Color("Surface"))
-                }
-                header: {
-                    Text("Basic")
-                        .foregroundColor(Color("TextSecondary"))
+                } header: {
+                    Text("Basic").foregroundColor(Color("TextSecondary"))
                 }
 
-                Section() {
+                Section {
                     LabeledContent {
                         DatePicker("", selection: $startDate, displayedComponents: .date)
                             .labelsHidden()
                             .tint(Color("Primary"))
-                            .foregroundColor(.white)   // makes the date text white
-                            
                     } label: {
                         Text("Start").foregroundColor(Color("TextSecondary"))
                     }
                     .listRowBackground(Color("Surface"))
-                    
+
                     Toggle(isOn: $hasEndDate.animation()) {
                         Text("Set end date").foregroundColor(Color("TextPrimary"))
                     }
                     .tint(Color("Primary"))
                     .listRowBackground(Color("Surface"))
-                    
+
                     if hasEndDate {
                         LabeledContent {
                             DatePicker("",
@@ -648,22 +669,18 @@ struct HabitEditView: View {
                         }
                         .listRowBackground(Color("Surface"))
                     }
-                }
-                header: {
-                    Text("Dates")
-                        .foregroundColor(Color("TextSecondary"))
+                } header: {
+                    Text("Dates").foregroundColor(Color("TextSecondary"))
                 }
 
-                Section() {
+                Section {
                     Toggle(isOn: $isAccepted) {
                         Text("Accepted").foregroundColor(Color("TextPrimary"))
                     }
                     .tint(Color("Primary"))
                     .listRowBackground(Color("Surface"))
-                }
-                header: {
-                    Text("Status")
-                        .foregroundColor(Color("TextSecondary"))
+                } header: {
+                    Text("Status").foregroundColor(Color("TextSecondary"))
                 }
 
                 Section {
@@ -677,7 +694,7 @@ struct HabitEditView: View {
                                 .font(.body.weight(.semibold))
                         }
                         .foregroundColor(.red)
-                        .frame(maxWidth: .infinity) // center horizontally
+                        .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(Color("Surface"))
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -757,7 +774,7 @@ extension Habit {
                 frequency: "daily",
                 reminderTime: "07:00 AM",
                 streak: Streak(current: 5, longest: 12, lastCompletedDate: yesterday),
-                completions: [Completion(date: today)],
+                completions: [Completion(date: today), Completion(date: twoDaysAgo)],
                 isDeleted: false,
                 isAccepted: true
             ),
@@ -772,67 +789,7 @@ extension Habit {
                 frequency: "daily",
                 reminderTime: "09:00 PM",
                 streak: Streak(current: 2, longest: 4, lastCompletedDate: twoDaysAgo),
-                completions: [],
-                isDeleted: false,
-                isAccepted: true
-            ),
-            Habit(
-                id: "h3",
-                title: "Meditation",
-                description: "15 minutes mindfulness practice",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
-                frequency: "weekly",
-                reminderTime: nil,
-                streak: Streak(current: 0, longest: 3, lastCompletedDate: nil),
-                completions: [],
-                isDeleted: false,
-                isAccepted: false
-            ),
-            Habit(
-                id: "h4",
-                title: "Stretching Routine",
-                description: "5-minute mobility",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
-                frequency: "monthly",
-                reminderTime: "08:00 AM",
-                streak: Streak(current: 1, longest: 2, lastCompletedDate: twoDaysAgo),
-                completions: [],
-                isDeleted: false,
-                isAccepted: true
-            ),
-            Habit(
-                id: "h1",
-                title: "Morning Run",
-                description: "Run at least 2km",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
-                frequency: "daily",
-                reminderTime: "07:00 AM",
-                streak: Streak(current: 5, longest: 12, lastCompletedDate: yesterday),
-                completions: [Completion(date: today)],
-                isDeleted: false,
-                isAccepted: true
-            ),
-            Habit(
-                id: "h2",
-                title: "Read Book",
-                description: "Read 20 pages of non-fiction",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
-                frequency: "daily",
-                reminderTime: "09:00 PM",
-                streak: Streak(current: 2, longest: 4, lastCompletedDate: twoDaysAgo),
-                completions: [],
+                completions: [Completion(date: yesterday)],
                 isDeleted: false,
                 isAccepted: true
             ),
@@ -877,8 +834,10 @@ extension Habit {
 }
 
 #Preview("Habit Row - Accepted") {
-    HabitRow(
+    let day = Date() // today
+    return HabitRow(
         habit: Habit.previewHabits.first!,
+        day: day,
         onAccept: {},
         onReject: {},
         onCompleteToggle: {},
@@ -893,6 +852,7 @@ extension Habit {
     let pending = Habit.previewHabits.first { !$0.isAccepted }!
     return HabitRow(
         habit: pending,
+        day: Date(),
         onAccept: {},
         onReject: {},
         onCompleteToggle: {},
