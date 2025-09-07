@@ -7,20 +7,19 @@ final class HomeViewModel: ObservableObject {
 
     @Published var visible: DayDisplay? = nil
 
-    private var pastCache: [String: PastDayResponse] = [:]
+    private var pastCache: [String: PastDayData] = [:]
     private var currentTask: Task<Void, Never>?
-    private var lastLoadedDayKey: String?   // track the last “today” key we loaded
+    private var lastLoadedDayKey: String?
 
     private lazy var dayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.calendar = .current
         f.locale = .current
-        f.timeZone = .current   // local day boundaries
+        f.timeZone = .current
         f.dateFormat = "yyyy-MM-dd"
         return f
     }()
 
-    // Expose a small helper so views can derive a dayKey consistently
     func dayKey(for date: Date) -> String {
         dayFormatter.string(from: date)
     }
@@ -45,10 +44,8 @@ final class HomeViewModel: ObservableObject {
         let key = dayKey(for: date)
         let isToday = Calendar.current.isDateInToday(date)
 
-        // Cancel any in-flight work for a previous date
         currentTask?.cancel()
 
-        // If it's today and we already have fresh local state, avoid refetch
         if isToday, !force, let today = appState.today {
             self.visible = mapTodayToDisplay(today, dayKey: key)
             appState.isHomeLoadingFirstTime = false
@@ -56,7 +53,6 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
-        // Loading states: first-time overlay vs. partial overlay
         if isToday, appState.isHomeLoadingFirstTime {
             appState.isHomeLoadingFirstTime = true
         } else {
@@ -68,26 +64,32 @@ final class HomeViewModel: ObservableObject {
 
             do {
                 if isToday {
-                    let resp: DailyDataFullResponse = try await self.fetchToday(forKey: key)
-                    // store habits (long-lived) + today snapshot
-                    AppState.shared.habits = resp.habits
-                    AppState.shared.today = DailyDataResponse(
-                        todos: resp.todos,
-                        upcomingReminders: resp.upcomingReminders,
-                        emotionalStates: resp.emotionalStates,
-                        transcripts: resp.transcripts
+                    let resp = try await self.fetchToday(forKey: key)
+                    guard resp.success else {
+                        throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: resp.message])
+                    }
+                    let data = resp.data
+                    AppState.shared.habits = data.habits
+                    AppState.shared.today = DailyData(
+                        todos: data.incompleteTodos,
+                        upcomingReminders: data.upcomingReminders,
+                        emotionalStates: data.emotionalStates,
+                        transcripts: data.transcripts
                     )
                     self.visible = self.mapTodayToDisplay(AppState.shared.today!, dayKey: key)
                     self.lastLoadedDayKey = key
                     AppState.shared.isHomeLoadingFirstTime = false
                 } else {
-                    // PAST day: use cache if available
                     if !force, let cached = pastCache[key] {
                         self.visible = self.mapPastToDisplay(cached, dayKey: key)
                     } else {
-                        let resp: PastDayResponse = try await self.fetchPast(forKey: key)
-                        pastCache[key] = resp
-                        self.visible = self.mapPastToDisplay(resp, dayKey: key)
+                        let resp = try await self.fetchPast(forKey: key)
+                        guard resp.success else {
+                            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: resp.message])
+                        }
+                        let data = resp.data
+                        pastCache[key] = data
+                        self.visible = self.mapPastToDisplay(data, dayKey: key)
                     }
                 }
 
@@ -103,22 +105,18 @@ final class HomeViewModel: ObservableObject {
         await currentTask?.value
     }
 
-    /// Force-refresh currently selected date (ignore cache)
     func refresh(for date: Date) async {
         await load(for: date, force: true)
     }
 
-    /// Call this when app becomes active or NSCalendarDayChanged fires.
     func handleDayBoundaryIfNeeded(now: Date = Date()) {
         let appState = AppState.shared
         let newKey = dayKey(for: now)
 
         guard let lastKey = lastLoadedDayKey, lastKey != newKey else { return }
 
-        // Invalidate today snapshot so the next view of today refetches
         appState.today = nil
 
-        // If the user is viewing "today", move selection to the new day and refresh
         if Calendar.current.isDateInToday(appState.selectedDate) {
             appState.selectedDate = Calendar.current.startOfDay(for: now)
             Task { [weak self] in
@@ -129,15 +127,14 @@ final class HomeViewModel: ObservableObject {
         lastLoadedDayKey = newKey
     }
 
-    // MARK: - Private networking
+    // MARK: - Networking
 
     private func fetchToday(forKey dayKey: String) async throws -> DailyDataFullResponse {
         let endpoint = "/daily-data/today"
         let query = [URLQueryItem(name: "day", value: dayKey)]
         return try await APIClient.shared.request(endpoint: endpoint,
                                                   requiresAuth: true,
-                                                  queryItems: query
-                                                  )
+                                                  queryItems: query)
     }
 
     private func fetchPast(forKey dayKey: String) async throws -> PastDayResponse {
@@ -145,13 +142,12 @@ final class HomeViewModel: ObservableObject {
         let query = [URLQueryItem(name: "day", value: dayKey)]
         return try await APIClient.shared.request(endpoint: endpoint,
                                                   requiresAuth: true,
-                                                  queryItems: query
-                                                  )
+                                                  queryItems: query)
     }
 
-    // MARK: - Mappers (now set dayKey)
+    // MARK: - Mappers
 
-    private func mapTodayToDisplay(_ today: DailyDataResponse, dayKey: String) -> DayDisplay {
+    private func mapTodayToDisplay(_ today: DailyData, dayKey: String) -> DayDisplay {
         DayDisplay(
             dayKey: dayKey,
             isToday: true,
@@ -162,7 +158,7 @@ final class HomeViewModel: ObservableObject {
         )
     }
 
-    private func mapPastToDisplay(_ past: PastDayResponse, dayKey: String) -> DayDisplay {
+    private func mapPastToDisplay(_ past: PastDayData, dayKey: String) -> DayDisplay {
         DayDisplay(
             dayKey: dayKey,
             isToday: false,

@@ -8,10 +8,12 @@ final class AppState: ObservableObject {
         self.isLoggedIn = TokenManager.shared.accessToken != nil
         self.selectedDate = Calendar.current.startOfDay(for: Date())
         self.isHomeLoadingFirstTime = true
-        // Mock/demo defaults (optional)
-        self.today = DailyDataResponse.mock
-        self.habits = Habit.mockList
-        self.lastJournalSnippet = today?.transcripts.first?.text
+
+//        self.today = DailyDataResponse.mock
+//        self.habits = Habit.mockList
+        
+        self.today = nil
+        self.habits = []
 
         if isLoggedIn {
             self.currentUser = UserManager.shared.loadUser()
@@ -22,14 +24,13 @@ final class AppState: ObservableObject {
     @Published var isLoggedIn: Bool
     @Published var currentUser: User?
     @Published var selectedDate: Date
-    @Published var lastJournalSnippet: String?
     @Published var isProcessingTranscript: Bool = false
     @Published var isHomeLoading: Bool
     @Published var isHomeLoadingFirstTime: Bool
 
     // Long-lived data
     @Published var habits: [Habit] = []                // Fetched with "today" once
-    @Published var today: DailyDataResponse?           // Today's “incomplete todos + reminders + emotions + transcripts”
+    @Published var today: DailyData?           // Today's “incomplete todos + reminders + emotions + transcripts”
 
     func setUser(_ user: User) {
         self.currentUser = user

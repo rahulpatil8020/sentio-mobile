@@ -107,18 +107,19 @@ struct AddHabitSheet: View {
                     Button {
                         let newHabit = Habit(
                             id: UUID().uuidString,
+                            userId: "u1", // replace with real logged-in user id
                             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                             description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                            createdAt: Date(),
-                            updatedAt: nil,
-                            startDate: startDate,
-                            endDate: hasEndDate ? endDate : nil,
-                            frequency: frequency,
-                            reminderTime: reminderTime.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                            frequency: frequency.lowercased(),
                             streak: Streak(current: 0, longest: 0, lastCompletedDate: nil),
                             completions: [],
                             isDeleted: false,
-                            isAccepted: isAccepted
+                            isAccepted: isAccepted,
+                            createdAt: Date(),
+                            startDate: startDate,
+                            updatedAt: nil,
+                            endDate: hasEndDate ? endDate : nil,
+                            reminderTime: reminderTime.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
                         )
                         onAdd(newHabit)
                         dismiss()

@@ -164,86 +164,111 @@ struct HabitCard: View {
         .accessibilityAddTraits(.isButton)
     }
 }
+
 extension Habit {
     static let sampleHabits: [Habit] = {
         let cal = Calendar.current
         let today = Date()
         let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
-        let twoDaysAgo = cal.date(byAdding: .day, value: -2, to: today)!
+        let threeDaysAgo = cal.date(byAdding: .day, value: -3, to: today)!
+        let lastWeek = cal.date(byAdding: .day, value: -7, to: today)!
+        let lastMonth = cal.date(byAdding: .month, value: -1, to: today)!
 
         return [
             Habit(
                 id: "h1",
-                title: "Morning Run",
-                description: "Run at least 2 km outside or on treadmill.",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
+                userId: "u1",
+                title: "Hydration",
+                description: "Drink at least 2 liters of water daily.",
                 frequency: "daily",
-                reminderTime: "07:00 AM",
-                streak: Streak(current: 3, longest: 7, lastCompletedDate: yesterday),
+                streak: Streak(current: 5, longest: 10, lastCompletedDate: yesterday),
                 completions: [
                     Completion(date: today),
                     Completion(date: yesterday),
-                    Completion(date: twoDaysAgo)
+                    Completion(date: threeDaysAgo)
                 ],
                 isDeleted: false,
-                isAccepted: true
+                isAccepted: true,
+                createdAt: lastWeek,
+                startDate: lastWeek,
+                updatedAt: nil,
+                endDate: nil,
+                reminderTime: "10:00 AM"
             ),
             Habit(
                 id: "h2",
-                title: "Read Book",
-                description: "Read at least 20 pages of non-fiction.",
-                createdAt: yesterday,
-                updatedAt: nil,
-                startDate: yesterday,
-                endDate: nil,
+                userId: "u1",
+                title: "Evening Walk",
+                description: "Walk for 20 minutes after dinner.",
                 frequency: "daily",
-                reminderTime: "09:00 PM",
+                streak: Streak(current: 2, longest: 6, lastCompletedDate: today),
+                completions: [
+                    Completion(date: today),
+                    Completion(date: yesterday)
+                ],
+                isDeleted: false,
+                isAccepted: true,
+                createdAt: lastMonth,
+                startDate: lastMonth,
+                updatedAt: nil,
+                endDate: nil,
+                reminderTime: "08:30 PM"
+            ),
+            Habit(
+                id: "h3",
+                userId: "u1",
+                title: "Weekly Review",
+                description: "Review personal goals and progress.",
+                frequency: "weekly",
+                streak: Streak(current: 0, longest: 3, lastCompletedDate: nil),
+                completions: [],
+                isDeleted: false,
+                isAccepted: false, // still pending
+                createdAt: lastWeek,
+                startDate: lastWeek,
+                updatedAt: nil,
+                endDate: nil,
+                reminderTime: "Sunday 06:00 PM"
+            ),
+            Habit(
+                id: "h4",
+                userId: "u1",
+                title: "Journal Writing",
+                description: "Write daily reflection before bed.",
+                frequency: "daily",
                 streak: Streak(current: 1, longest: 4, lastCompletedDate: today),
                 completions: [
                     Completion(date: today)
                 ],
                 isDeleted: false,
-                isAccepted: true
-            ),
-            Habit(
-                id: "h3",
-                title: "Meditation",
-                description: "10 minutes mindfulness meditation.",
+                isAccepted: true,
                 createdAt: today,
-                updatedAt: nil,
                 startDate: today,
+                updatedAt: nil,
                 endDate: nil,
-                frequency: "weekly",
-                reminderTime: nil,
-                streak: Streak(current: 0, longest: 2, lastCompletedDate: nil),
-                completions: [],
-                isDeleted: false,
-                isAccepted: false // pending
+                reminderTime: "10:00 PM"
             ),
             Habit(
-                id: "h4",
-                title: "Stretching Routine",
-                description: "5–10 minutes evening mobility/stretching.",
-                createdAt: twoDaysAgo,
-                updatedAt: nil,
-                startDate: twoDaysAgo,
-                endDate: nil,
+                id: "h5",
+                userId: "u1",
+                title: "Volunteer Work",
+                description: "Spend 2 hours on community service.",
                 frequency: "monthly",
-                reminderTime: "08:00 PM",
-                streak: Streak(current: 2, longest: 5, lastCompletedDate: twoDaysAgo),
+                streak: Streak(current: 0, longest: 1, lastCompletedDate: lastMonth),
                 completions: [
-                    Completion(date: twoDaysAgo)
+                    Completion(date: lastMonth)
                 ],
                 isDeleted: false,
-                isAccepted: true
+                isAccepted: true,
+                createdAt: lastMonth,
+                startDate: lastMonth,
+                updatedAt: nil,
+                endDate: nil,
+                reminderTime: nil
             )
         ]
     }()
 }
-
 #Preview("With Habits (Today)") {
     VStack {
         HabitCard(

@@ -75,12 +75,20 @@ struct HabitsDetailView: View {
                         onDelete: {
                             var h = habits[idx]
                             h = Habit(
-                                id: h.id, title: h.title, description: h.description,
-                                createdAt: h.createdAt, updatedAt: Date(),
-                                startDate: h.startDate, endDate: h.endDate,
-                                frequency: h.frequency, reminderTime: h.reminderTime,
-                                streak: h.streak, completions: h.completions,
-                                isDeleted: true, isAccepted: h.isAccepted
+                                id: h.id,
+                                userId: h.userId,
+                                title: h.title,
+                                description: h.description,
+                                frequency: h.frequency,
+                                streak: h.streak,
+                                completions: h.completions,
+                                isDeleted: true,
+                                isAccepted: h.isAccepted,
+                                createdAt: h.createdAt,
+                                startDate: h.startDate,
+                                updatedAt: Date(),
+                                endDate: h.endDate,
+                                reminderTime: h.reminderTime
                             )
                             habits[idx] = h
                         }
@@ -110,13 +118,20 @@ struct HabitsDetailView: View {
             guard let i = all.firstIndex(where: { $0.id == habitID }) else { return }
             let h = all[i]
             all[i] = Habit(
-                id: h.id, title: h.title, description: h.description,
-                createdAt: h.createdAt, updatedAt: Date(),
-                startDate: h.startDate, endDate: h.endDate,
-                frequency: h.frequency, reminderTime: h.reminderTime,
-                streak: h.streak, completions: h.completions,
-                isDeleted: false,                  // ensure it shows up if it was pending
-                isAccepted: true
+                id: h.id,
+                userId: h.userId,
+                title: h.title,
+                description: h.description,
+                frequency: h.frequency,
+                streak: h.streak,
+                completions: h.completions,
+                isDeleted: false,
+                isAccepted: true,
+                createdAt: h.createdAt,
+                startDate: h.startDate,
+                updatedAt: Date(),
+                endDate: h.endDate,
+                reminderTime: h.reminderTime
             )
         }
     }
@@ -126,13 +141,20 @@ struct HabitsDetailView: View {
             guard let i = all.firstIndex(where: { $0.id == habitID }) else { return }
             let h = all[i]
             all[i] = Habit(
-                id: h.id, title: h.title, description: h.description,
-                createdAt: h.createdAt, updatedAt: Date(),
-                startDate: h.startDate, endDate: h.endDate,
-                frequency: h.frequency, reminderTime: h.reminderTime,
-                streak: h.streak, completions: h.completions,
-                isDeleted: true,                   // hide it from active
-                isAccepted: h.isAccepted
+                id: h.id,
+                userId: h.userId,
+                title: h.title,
+                description: h.description,
+                frequency: h.frequency,
+                streak: h.streak,
+                completions: h.completions,
+                isDeleted: true,
+                isAccepted: h.isAccepted,
+                createdAt: h.createdAt,
+                startDate: h.startDate,
+                updatedAt: Date(),
+                endDate: h.endDate,
+                reminderTime: h.reminderTime
             )
         }
     }
@@ -161,81 +183,107 @@ struct HabitsDetailView: View {
                     // Today: adjust current streak numbers
                     let newCurrent = max(0, h.streak.current - 1)
                     h = Habit(
-                        id: h.id, title: h.title, description: h.description,
-                        createdAt: h.createdAt, updatedAt: Date(),
-                        startDate: h.startDate, endDate: h.endDate,
-                        frequency: h.frequency, reminderTime: h.reminderTime,
+                        id: h.id,
+                        userId: h.userId,
+                        title: h.title,
+                        description: h.description,
+                        frequency: h.frequency,
                         streak: Streak(
                             current: newCurrent,
                             longest: h.streak.longest,
                             lastCompletedDate: comps.max(by: { $0.date < $1.date })?.date
                         ),
                         completions: comps,
-                        isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                        isDeleted: h.isDeleted,
+                        isAccepted: h.isAccepted,
+                        createdAt: h.createdAt,
+                        startDate: h.startDate,
+                        updatedAt: Date(),
+                        endDate: h.endDate,
+                        reminderTime: h.reminderTime
                     )
                 } else {
-                    // Past day: keep current/longest same, but fix lastCompletedDate if it pointed to this removed day
+                    // Past day: keep streak but fix lastCompletedDate if needed
                     let newLast = cal.isDate(h.streak.lastCompletedDate ?? .distantPast, inSameDayAs: startOfDay)
                         ? comps.max(by: { $0.date < $1.date })?.date
                         : h.streak.lastCompletedDate
 
                     h = Habit(
-                        id: h.id, title: h.title, description: h.description,
-                        createdAt: h.createdAt, updatedAt: Date(),
-                        startDate: h.startDate, endDate: h.endDate,
-                        frequency: h.frequency, reminderTime: h.reminderTime,
+                        id: h.id,
+                        userId: h.userId,
+                        title: h.title,
+                        description: h.description,
+                        frequency: h.frequency,
                         streak: Streak(
                             current: h.streak.current,
                             longest: h.streak.longest,
                             lastCompletedDate: newLast
                         ),
                         completions: comps,
-                        isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                        isDeleted: h.isDeleted,
+                        isAccepted: h.isAccepted,
+                        createdAt: h.createdAt,
+                        startDate: h.startDate,
+                        updatedAt: Date(),
+                        endDate: h.endDate,
+                        reminderTime: h.reminderTime
                     )
                 }
             } else {
-                // ADD completion for that day (avoid duplicates)
+                // ADD completion for that day
                 var comps = h.completions
                 if !comps.contains(where: { cal.isDate($0.date, inSameDayAs: startOfDay) }) {
                     comps.append(Completion(date: startOfDay))
                 }
 
                 if isToday {
-                    // Today: bump current/longest + set lastCompletedDate
                     let newCurrent = h.streak.current + 1
                     let newLongest = max(h.streak.longest, newCurrent)
                     h = Habit(
-                        id: h.id, title: h.title, description: h.description,
-                        createdAt: h.createdAt, updatedAt: Date(),
-                        startDate: h.startDate, endDate: h.endDate,
-                        frequency: h.frequency, reminderTime: h.reminderTime,
+                        id: h.id,
+                        userId: h.userId,
+                        title: h.title,
+                        description: h.description,
+                        frequency: h.frequency,
                         streak: Streak(
                             current: newCurrent,
                             longest: newLongest,
                             lastCompletedDate: startOfDay
                         ),
                         completions: comps,
-                        isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                        isDeleted: h.isDeleted,
+                        isAccepted: h.isAccepted,
+                        createdAt: h.createdAt,
+                        startDate: h.startDate,
+                        updatedAt: Date(),
+                        endDate: h.endDate,
+                        reminderTime: h.reminderTime
                     )
                 } else {
-                    // Past day: keep current/longest same, but advance lastCompletedDate if this day is more recent
                     let newLast: Date? = {
                         guard let last = h.streak.lastCompletedDate else { return startOfDay }
                         return max(last, startOfDay)
                     }()
 
                     h = Habit(
-                        id: h.id, title: h.title, description: h.description,
-                        createdAt: h.createdAt, updatedAt: Date(),
-                        startDate: h.startDate, endDate: h.endDate,
-                        frequency: h.frequency, reminderTime: h.reminderTime,
+                        id: h.id,
+                        userId: h.userId,
+                        title: h.title,
+                        description: h.description,
+                        frequency: h.frequency,
                         streak: Streak(
                             current: h.streak.current,
                             longest: h.streak.longest,
                             lastCompletedDate: newLast
                         ),
                         completions: comps,
-                        isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                        isDeleted: h.isDeleted,
+                        isAccepted: h.isAccepted,
+                        createdAt: h.createdAt,
+                        startDate: h.startDate,
+                        updatedAt: Date(),
+                        endDate: h.endDate,
+                        reminderTime: h.reminderTime
                     )
                 }
             }
@@ -244,10 +292,6 @@ struct HabitsDetailView: View {
         }
     }
     
-    private func mostRecentDate(in comps: [Completion]) -> Date? {
-        comps.max(by: { $0.date < $1.date })?.date
-    }
-
     private func rank(_ freq: String) -> Int {
         switch freq.lowercased() {
         case "daily": return 0

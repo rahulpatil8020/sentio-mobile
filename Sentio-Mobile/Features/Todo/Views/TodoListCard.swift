@@ -319,7 +319,8 @@ struct AddTodoSheet: View {
                             createdBy: "me",
                             createdAt: Date(),
                             priority: priority,
-                            completedAt: nil
+                            completedAt: nil,
+                            userId: "u1"
                         )
                         onAdd(todo)
                         dismiss()
@@ -334,24 +335,77 @@ struct AddTodoSheet: View {
 
 // MARK: - Preview
 #Preview("With Tasks") {
-    let sample: [Todo] = [
-        .init(id: "1", title: "Complete Assignment", completed: false,
-              dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
-              createdBy: "rahul", createdAt: Date().addingTimeInterval(-60000), priority: 9, completedAt: nil),
-        .init(id: "2", title: "Gym", completed: false,
-              dueDate: nil, createdBy: "rahul", createdAt: Date().addingTimeInterval(-50000), priority: 5, completedAt: nil),
-        .init(id: "3", title: "Team Meeting", completed: false,
-              dueDate: Calendar.current.date(byAdding: .day, value: 2, to: Date()),
-              createdBy: "rahul", createdAt: Date().addingTimeInterval(-40000), priority: 8, completedAt: nil),
-        .init(id: "4", title: "Meditation", completed: false,
-              dueDate: nil, createdBy: "rahul", createdAt: Date().addingTimeInterval(-30000), priority: 3, completedAt: nil),
-        .init(id: "5", title: "Buy Groceries", completed: false,
-              dueDate: Calendar.current.date(byAdding: .day, value: 3, to: Date()),
-              createdBy: "rahul", createdAt: Date().addingTimeInterval(-20000), priority: 7, completedAt: nil),
+    let sampleTodos: [Todo] = [
+        .init(
+            id: "t1",
+            title: "Finish SwiftUI Module",
+            completed: false,
+            dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
+            createdBy: "rahul",
+            createdAt: Date().addingTimeInterval(-80000),
+            priority: 9,
+            completedAt: nil,
+            userId: "u1"
+        ),
+        .init(
+            id: "t2",
+            title: "Morning Workout",
+            completed: true,
+            dueDate: nil,
+            createdBy: "rahul",
+            createdAt: Date().addingTimeInterval(-70000),
+            priority: 6,
+            completedAt: Date().addingTimeInterval(-2000),
+            userId: "u1"
+        ),
+        .init(
+            id: "t3",
+            title: "Prepare Presentation Slides",
+            completed: false,
+            dueDate: Calendar.current.date(byAdding: .day, value: 3, to: Date()),
+            createdBy: "rahul",
+            createdAt: Date().addingTimeInterval(-60000),
+            priority: 8,
+            completedAt: nil,
+            userId: "u1"
+        ),
+        .init(
+            id: "t4",
+            title: "Doctor Appointment",
+            completed: false,
+            dueDate: Calendar.current.date(byAdding: .day, value: 5, to: Date()),
+            createdBy: "rahul",
+            createdAt: Date().addingTimeInterval(-50000),
+            priority: 7,
+            completedAt: nil,
+            userId: "u1"
+        ),
+        .init(
+            id: "t5",
+            title: "Call Parents",
+            completed: true,
+            dueDate: nil,
+            createdBy: "rahul",
+            createdAt: Date().addingTimeInterval(-40000),
+            priority: 4,
+            completedAt: Date().addingTimeInterval(-10000),
+            userId: "u1"
+        ),
+        .init(
+            id: "t6",
+            title: "Plan Weekend Trip",
+            completed: false,
+            dueDate: Calendar.current.date(byAdding: .day, value: 7, to: Date()),
+            createdBy: "rahul",
+            createdAt: Date().addingTimeInterval(-30000),
+            priority: 5,
+            completedAt: nil,
+            userId: "u1"
+        )
     ]
 
     ScrollView {
-        TodoListCard(todos: sample)
+        TodoListCard(todos: sampleTodos)
             .padding()
     }
     .background(Color("Background"))

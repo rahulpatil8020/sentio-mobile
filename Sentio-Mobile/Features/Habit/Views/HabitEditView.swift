@@ -130,19 +130,20 @@ struct HabitEditView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         let updated = Habit(
-                            id: habit.id,
+                            id: UUID().uuidString,
+                            userId: "u1", // replace with real logged-in user id
                             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                             description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                            createdAt: habit.createdAt,
-                            updatedAt: Date(),
+                            frequency: frequency.lowercased(),
+                            streak: Streak(current: 0, longest: 0, lastCompletedDate: nil),
+                            completions: [],
+                            isDeleted: false,
+                            isAccepted: isAccepted,
+                            createdAt: Date(),
                             startDate: startDate,
+                            updatedAt: nil,
                             endDate: hasEndDate ? endDate : nil,
-                            frequency: frequency,
-                            reminderTime: reminderTime.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                            streak: habit.streak,
-                            completions: habit.completions,
-                            isDeleted: habit.isDeleted,
-                            isAccepted: isAccepted
+                            reminderTime: reminderTime.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
                         )
                         onSave(updated)
                         dismiss()

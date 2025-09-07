@@ -10,7 +10,7 @@ import Foundation
 // MARK: - API Errors
 enum APIError: Error, LocalizedError {
     case invalidResponse
-    case decodingError
+    case decodingError(Error)
     case serverError(String)
     case unauthorized
     case refreshFailed
@@ -18,7 +18,7 @@ enum APIError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse: return "Invalid response from server"
-        case .decodingError: return "Failed to decode server response"
+        case .decodingError(let err): return "Failed to decode server response: \(err.localizedDescription)"
         case .serverError(let message): return message
         case .unauthorized: return "Session expired. Please log in again."
         case .refreshFailed: return "Could not refresh session. Please log in again."
@@ -32,6 +32,34 @@ final class APIClient {
     private init() {}
 
     private let baseURL = URL(string: Constants.baseURL)!
+
+    /// Shared JSON decoder for all API responses
+    private static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+
+        // handle ISO8601 with fractional seconds like `2025-09-07T09:39:44.658Z`
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+
+            if let date = isoFormatter.date(from: dateString) {
+                return date
+            }
+            // fallback without fractional seconds
+            if let date = ISO8601DateFormatter().date(from: dateString) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid date: \(dateString)"
+            )
+        }
+
+        return decoder
+    }()
 
     func request<T: Decodable>(
         endpoint: String,
@@ -72,10 +100,10 @@ final class APIClient {
         switch httpResponse.statusCode {
         case 200..<300:
             do {
-                let decoded = try JSONDecoder().decode(T.self, from: data)
+                let decoded = try APIClient.decoder.decode(T.self, from: data)
                 return decoded
             } catch {
-                throw APIError.decodingError
+                throw APIError.decodingError(error)
             }
 
         case 401:
@@ -93,14 +121,14 @@ final class APIClient {
                     throw APIError.unauthorized
                 }
             } else {
-                if let serverError = try? JSONDecoder().decode(ServerErrorResponse.self, from: data) {
+                if let serverError = try? APIClient.decoder.decode(ServerErrorResponse.self, from: data) {
                     throw APIError.serverError(serverError.error.message)
                 }
                 throw APIError.serverError("Unauthorized")
             }
 
         default:
-            if let serverError = try? JSONDecoder().decode(ServerErrorResponse.self, from: data) {
+            if let serverError = try? APIClient.decoder.decode(ServerErrorResponse.self, from: data) {
                 throw APIError.serverError(serverError.error.message)
             }
             throw APIError.serverError("Unknown server error (\(httpResponse.statusCode))")
@@ -124,7 +152,7 @@ final class APIClient {
                 return false
             }
 
-            let refreshResponse = try JSONDecoder().decode(RefreshResponse.self, from: data)
+            let refreshResponse = try APIClient.decoder.decode(RefreshResponse.self, from: data)
             TokenManager.shared.accessToken = refreshResponse.accessToken
             if let newRefreshToken = refreshResponse.refreshToken {
                 TokenManager.shared.refreshToken = newRefreshToken
