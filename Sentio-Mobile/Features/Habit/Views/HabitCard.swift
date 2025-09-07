@@ -2,19 +2,25 @@ import SwiftUI
 
 // MARK: - Card
 struct HabitCard: View {
-    let habits: [Habit]          // already filtered for isDeleted outside, ideally
-    let selectedDate: Date       // 👈 pass this in
+    let habits: [Habit]
+    let selectedDate: Date
 
     @State private var showDetails = false
 
+    private var activeHabits: [Habit] {
+        habits.filter { !$0.isDeleted && $0.isAccepted }
+    }
+
+    private var pendingExists: Bool {
+        habits.contains { !$0.isDeleted && !$0.isAccepted }
+    }
+
     // MARK: - Derived values
-    private var total: Int { habits.count }
+    private var total: Int { activeHabits.count }
 
     private var completed: Int {
         let cal = Calendar.current
-        // Count a habit as completed if any completion is on selectedDate,
-        // OR the streak.lastCompletedDate is on selectedDate (defensive).
-        return habits.filter { h in
+        return activeHabits.filter { h in
             let didCompleteFromCompletions = h.completions.contains {
                 cal.isDate($0.date, inSameDayAs: selectedDate)
             }
@@ -47,7 +53,7 @@ struct HabitCard: View {
                     .font(.headline)
                     .foregroundColor(Color("TextPrimary"))
 
-                if habits.isEmpty {
+                if activeHabits.isEmpty {
                     // Empty State
                     VStack(spacing: 10) {
                         Image(systemName: "leaf.circle")
@@ -82,18 +88,63 @@ struct HabitCard: View {
                             .foregroundColor(.white)
                     }
                     .frame(width: 80, height: 80)
+                    // 👇 Dot on the circle’s top-right corner
+                    .overlay(alignment: .topTrailing) {
+                        if pendingExists {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 12, height: 12)
+                                .offset(x: 6, y: -6) // small nudge outward
+                        }
+                    }
 
                     VStack(spacing: 4) {
-                        if progress >= 1.0 {
+                        switch progress {
+                        case 0:
+                            Text("Let's get started 🚀")
+                                .foregroundColor(Color("TextPrimary"))
+                                .font(.subheadline)
+                            Text("Complete your first habit today")
+                                .foregroundColor(Color("TextSecondary"))
+                                .font(.caption)
+
+                        case 0..<0.3:
+                            Text("Little progress counts 🌱")
+                                .foregroundColor(Color("TextPrimary"))
+                                .font(.subheadline)
+                            Text("Keep the momentum going")
+                                .foregroundColor(Color("TextSecondary"))
+                                .font(.caption)
+
+                        case 0.3..<0.6:
+                            Text("Halfway there ✨")
+                                .foregroundColor(Color("TextPrimary"))
+                                .font(.subheadline)
+                            Text("You're building consistency")
+                                .foregroundColor(Color("TextSecondary"))
+                                .font(.caption)
+
+                        case 0.6..<0.9:
+                            Text("Almost done 💪")
+                                .foregroundColor(Color("TextPrimary"))
+                                .font(.subheadline)
+                            Text("Only \(remaining) more to go")
+                                .foregroundColor(Color("TextSecondary"))
+                                .font(.caption)
+
+                        case 0.9..<1.0:
+                            Text("So close! 🔥")
+                                .foregroundColor(Color("TextPrimary"))
+                                .font(.subheadline)
+                            Text("Just \(remaining) habit left")
+                                .foregroundColor(Color("TextSecondary"))
+                                .font(.caption)
+
+                        default: // 1.0
                             Text("Great job! 🎉")
                                 .foregroundColor(Color("TextPrimary"))
                                 .font(.subheadline)
-                        } else {
-                            Text("You’re almost there!")
-                                .foregroundColor(Color("TextPrimary"))
-                                .font(.subheadline)
-
-                            Text("Only \(remaining) more to go")
+                            Text("You've completed everything")
                                 .foregroundColor(Color("TextSecondary"))
                                 .font(.caption)
                         }
@@ -113,7 +164,6 @@ struct HabitCard: View {
         .accessibilityAddTraits(.isButton)
     }
 }
-
 extension Habit {
     static let sampleHabits: [Habit] = {
         let cal = Calendar.current
@@ -229,7 +279,3 @@ extension Habit {
     .environment(\.colorScheme, .dark)
 }
 
-#Preview("Habits Fullscreen") {
-    HabitsDetailView(initialHabits: Habit.sampleHabits)
-        .environment(\.colorScheme, .dark)
-}

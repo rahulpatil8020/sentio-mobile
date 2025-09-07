@@ -132,13 +132,21 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Private networking
 
     private func fetchToday(forKey dayKey: String) async throws -> DailyDataFullResponse {
-        let endpoint = "/daily-data/today?day=\(dayKey)"
-        return try await APIClient.shared.request(endpoint: endpoint, requiresAuth: true)
+        let endpoint = "/daily-data/today"
+        let query = [URLQueryItem(name: "day", value: dayKey)]
+        return try await APIClient.shared.request(endpoint: endpoint,
+                                                  requiresAuth: true,
+                                                  queryItems: query
+                                                  )
     }
 
     private func fetchPast(forKey dayKey: String) async throws -> PastDayResponse {
-        let endpoint = "/daily-data/past?day=\(dayKey)"
-        return try await APIClient.shared.request(endpoint: endpoint, requiresAuth: true)
+        let endpoint = "/daily-data/past"
+        let query = [URLQueryItem(name: "day", value: dayKey)]
+        return try await APIClient.shared.request(endpoint: endpoint,
+                                                  requiresAuth: true,
+                                                  queryItems: query
+                                                  )
     }
 
     // MARK: - Mappers (now set dayKey)

@@ -32,6 +32,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal)
                 .padding(.top, 0)
+                .padding(.bottom)
 
                 // Everything below can be blocked by the overlay
                 ZStack {

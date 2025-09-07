@@ -37,14 +37,27 @@ final class APIClient {
         endpoint: String,
         method: String = "GET",
         body: Data? = nil,
-        requiresAuth: Bool = false
+        requiresAuth: Bool = false,
+        queryItems: [URLQueryItem]? = nil
     ) async throws -> T {
-        
-        var urlRequest = URLRequest(url: baseURL.appendingPathComponent(endpoint))
+        // Build URL with URLComponents
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent(endpoint),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = queryItems
+
+        guard let url = components?.url else {
+            throw APIError.invalidResponse
+        }
+
+        var urlRequest = URLRequest(url: url)
+        print("➡️ Requesting:", url.absoluteString)
         urlRequest.httpMethod = method
         urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
         let timezone = TimeZone.current.identifier
         urlRequest.addValue(timezone, forHTTPHeaderField: "X-Timezone")
+
         if requiresAuth, let token = TokenManager.shared.accessToken {
             urlRequest.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -68,13 +81,18 @@ final class APIClient {
         case 401:
             if requiresAuth {
                 if try await refreshAccessToken() {
-                    return try await request(endpoint: endpoint, method: method, body: body, requiresAuth: requiresAuth)
+                    return try await request(
+                        endpoint: endpoint,
+                        method: method,
+                        body: body,
+                        requiresAuth: requiresAuth,
+                        queryItems: queryItems
+                    )
                 } else {
                     TokenManager.shared.clearTokens()
                     throw APIError.unauthorized
                 }
             } else {
-                // No auth required (e.g. login), so it's a user error like invalid credentials
                 if let serverError = try? JSONDecoder().decode(ServerErrorResponse.self, from: data) {
                     throw APIError.serverError(serverError.error.message)
                 }
@@ -99,7 +117,6 @@ final class APIClient {
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONEncoder().encode(["refreshToken": refreshToken])
-        
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)

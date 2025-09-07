@@ -96,101 +96,154 @@ struct HabitsDetailView: View {
         }
         .background(Color("Background").ignoresSafeArea())
     }
+    
+    private func mutateAppStateHabits(_ mutate: (inout [Habit]) -> Void) {
+        var all = AppState.shared.habits          // 1) copy
+        mutate(&all)                              // 2) mutate
+        AppState.shared.habits = all              // 3) commit to global state
+        habits = all                              // 4) mirror into local state for this screen
+    }
 
     // MARK: - Local actions (replace with backend calls when wiring)
     private func handleAccept(habitID: String) {
-        guard let idx = habits.firstIndex(where: { $0.id == habitID }) else { return }
-        let h = habits[idx]
-        habits[idx] = Habit(
-            id: h.id, title: h.title, description: h.description,
-            createdAt: h.createdAt, updatedAt: Date(),
-            startDate: h.startDate, endDate: h.endDate,
-            frequency: h.frequency, reminderTime: h.reminderTime,
-            streak: h.streak, completions: h.completions,
-            isDeleted: h.isDeleted, isAccepted: true
-        )
+        mutateAppStateHabits { all in
+            guard let i = all.firstIndex(where: { $0.id == habitID }) else { return }
+            let h = all[i]
+            all[i] = Habit(
+                id: h.id, title: h.title, description: h.description,
+                createdAt: h.createdAt, updatedAt: Date(),
+                startDate: h.startDate, endDate: h.endDate,
+                frequency: h.frequency, reminderTime: h.reminderTime,
+                streak: h.streak, completions: h.completions,
+                isDeleted: false,                  // ensure it shows up if it was pending
+                isAccepted: true
+            )
+        }
     }
 
     private func handleReject(habitID: String) {
-        guard let idx = habits.firstIndex(where: { $0.id == habitID }) else { return }
-        let h = habits[idx]
-        habits[idx] = Habit(
-            id: h.id, title: h.title, description: h.description,
-            createdAt: h.createdAt, updatedAt: Date(),
-            startDate: h.startDate, endDate: h.endDate,
-            frequency: h.frequency, reminderTime: h.reminderTime,
-            streak: h.streak, completions: h.completions,
-            isDeleted: true, isAccepted: h.isAccepted
-        )
+        mutateAppStateHabits { all in
+            guard let i = all.firstIndex(where: { $0.id == habitID }) else { return }
+            let h = all[i]
+            all[i] = Habit(
+                id: h.id, title: h.title, description: h.description,
+                createdAt: h.createdAt, updatedAt: Date(),
+                startDate: h.startDate, endDate: h.endDate,
+                frequency: h.frequency, reminderTime: h.reminderTime,
+                streak: h.streak, completions: h.completions,
+                isDeleted: true,                   // hide it from active
+                isAccepted: h.isAccepted
+            )
+        }
     }
 
     /// Toggle complete for the **selected day**.
     /// If day is today → also adjusts streak; otherwise only touches completions.
     private func handleToggleComplete(on day: Date, habitID: String) {
-        guard let idx = habits.firstIndex(where: { $0.id == habitID }) else { return }
-        var h = habits[idx]
-        guard h.isAccepted else { return }
-
         let cal = Calendar.current
         let startOfDay = cal.startOfDay(for: day)
+        let isToday = cal.isDateInToday(day)
 
-        let hasForDay = h.completions.contains { cal.isDate($0.date, inSameDayAs: startOfDay) }
-            || (h.streak.lastCompletedDate.map { cal.isDate($0, inSameDayAs: startOfDay) } ?? false)
+        mutateAppStateHabits { all in
+            guard let idx = all.firstIndex(where: { $0.id == habitID }) else { return }
+            var h = all[idx]
+            guard h.isAccepted else { return }
 
-        if hasForDay {
-            var comps = h.completions.filter { !cal.isDate($0.date, inSameDayAs: startOfDay) }
-            if cal.isDateInToday(day) {
-                let newCurrent = max(0, h.streak.current - 1)
-                h = Habit(
-                    id: h.id, title: h.title, description: h.description,
-                    createdAt: h.createdAt, updatedAt: Date(),
-                    startDate: h.startDate, endDate: h.endDate,
-                    frequency: h.frequency, reminderTime: h.reminderTime,
-                    streak: Streak(current: newCurrent, longest: h.streak.longest, lastCompletedDate: mostRecentDate(in: comps)),
-                    completions: comps,
-                    isDeleted: h.isDeleted, isAccepted: h.isAccepted
-                )
+            let hasForDay =
+                h.completions.contains { cal.isDate($0.date, inSameDayAs: startOfDay) } ||
+                (h.streak.lastCompletedDate.map { cal.isDate($0, inSameDayAs: startOfDay) } ?? false)
+
+            if hasForDay {
+                // REMOVE completion for that day
+                var comps = h.completions.filter { !cal.isDate($0.date, inSameDayAs: startOfDay) }
+
+                if isToday {
+                    // Today: adjust current streak numbers
+                    let newCurrent = max(0, h.streak.current - 1)
+                    h = Habit(
+                        id: h.id, title: h.title, description: h.description,
+                        createdAt: h.createdAt, updatedAt: Date(),
+                        startDate: h.startDate, endDate: h.endDate,
+                        frequency: h.frequency, reminderTime: h.reminderTime,
+                        streak: Streak(
+                            current: newCurrent,
+                            longest: h.streak.longest,
+                            lastCompletedDate: comps.max(by: { $0.date < $1.date })?.date
+                        ),
+                        completions: comps,
+                        isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                    )
+                } else {
+                    // Past day: keep current/longest same, but fix lastCompletedDate if it pointed to this removed day
+                    let newLast = cal.isDate(h.streak.lastCompletedDate ?? .distantPast, inSameDayAs: startOfDay)
+                        ? comps.max(by: { $0.date < $1.date })?.date
+                        : h.streak.lastCompletedDate
+
+                    h = Habit(
+                        id: h.id, title: h.title, description: h.description,
+                        createdAt: h.createdAt, updatedAt: Date(),
+                        startDate: h.startDate, endDate: h.endDate,
+                        frequency: h.frequency, reminderTime: h.reminderTime,
+                        streak: Streak(
+                            current: h.streak.current,
+                            longest: h.streak.longest,
+                            lastCompletedDate: newLast
+                        ),
+                        completions: comps,
+                        isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                    )
+                }
             } else {
-                h = Habit(
-                    id: h.id, title: h.title, description: h.description,
-                    createdAt: h.createdAt, updatedAt: Date(),
-                    startDate: h.startDate, endDate: h.endDate,
-                    frequency: h.frequency, reminderTime: h.reminderTime,
-                    streak: h.streak,
-                    completions: comps,
-                    isDeleted: h.isDeleted, isAccepted: h.isAccepted
-                )
+                // ADD completion for that day (avoid duplicates)
+                var comps = h.completions
+                if !comps.contains(where: { cal.isDate($0.date, inSameDayAs: startOfDay) }) {
+                    comps.append(Completion(date: startOfDay))
+                }
+
+                if isToday {
+                    // Today: bump current/longest + set lastCompletedDate
+                    let newCurrent = h.streak.current + 1
+                    let newLongest = max(h.streak.longest, newCurrent)
+                    h = Habit(
+                        id: h.id, title: h.title, description: h.description,
+                        createdAt: h.createdAt, updatedAt: Date(),
+                        startDate: h.startDate, endDate: h.endDate,
+                        frequency: h.frequency, reminderTime: h.reminderTime,
+                        streak: Streak(
+                            current: newCurrent,
+                            longest: newLongest,
+                            lastCompletedDate: startOfDay
+                        ),
+                        completions: comps,
+                        isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                    )
+                } else {
+                    // Past day: keep current/longest same, but advance lastCompletedDate if this day is more recent
+                    let newLast: Date? = {
+                        guard let last = h.streak.lastCompletedDate else { return startOfDay }
+                        return max(last, startOfDay)
+                    }()
+
+                    h = Habit(
+                        id: h.id, title: h.title, description: h.description,
+                        createdAt: h.createdAt, updatedAt: Date(),
+                        startDate: h.startDate, endDate: h.endDate,
+                        frequency: h.frequency, reminderTime: h.reminderTime,
+                        streak: Streak(
+                            current: h.streak.current,
+                            longest: h.streak.longest,
+                            lastCompletedDate: newLast
+                        ),
+                        completions: comps,
+                        isDeleted: h.isDeleted, isAccepted: h.isAccepted
+                    )
+                }
             }
-        } else {
-            var comps = h.completions
-            comps.append(Completion(date: startOfDay))
-            if cal.isDateInToday(day) {
-                let newCurrent = h.streak.current + 1
-                let newLongest = max(h.streak.longest, newCurrent)
-                h = Habit(
-                    id: h.id, title: h.title, description: h.description,
-                    createdAt: h.createdAt, updatedAt: Date(),
-                    startDate: h.startDate, endDate: h.endDate,
-                    frequency: h.frequency, reminderTime: h.reminderTime,
-                    streak: Streak(current: newCurrent, longest: newLongest, lastCompletedDate: startOfDay),
-                    completions: comps,
-                    isDeleted: h.isDeleted, isAccepted: h.isAccepted
-                )
-            } else {
-                h = Habit(
-                    id: h.id, title: h.title, description: h.description,
-                    createdAt: h.createdAt, updatedAt: Date(),
-                    startDate: h.startDate, endDate: h.endDate,
-                    frequency: h.frequency, reminderTime: h.reminderTime,
-                    streak: h.streak,
-                    completions: comps,
-                    isDeleted: h.isDeleted, isAccepted: h.isAccepted
-                )
-            }
+
+            all[idx] = h
         }
-        habits[idx] = h
     }
-
+    
     private func mostRecentDate(in comps: [Completion]) -> Date? {
         comps.max(by: { $0.date < $1.date })?.date
     }
@@ -237,4 +290,9 @@ private struct EmptyHabitsView: View {
         }
         .frame(maxWidth: .infinity)
     }
+}
+
+#Preview("Habits Fullscreen") {
+    HabitsDetailView(initialHabits: Habit.sampleHabits)
+        .environment(\.colorScheme, .dark)
 }

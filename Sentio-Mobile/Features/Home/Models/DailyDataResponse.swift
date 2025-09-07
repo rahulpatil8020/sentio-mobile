@@ -385,7 +385,7 @@ extension Habit {
                 Completion(date: Date().addingTimeInterval(-86400 * 21))
             ],
             isDeleted: false,
-            isAccepted: true
+            isAccepted: false
         ),
         Habit(
             id: "habit6",
@@ -410,7 +410,7 @@ extension Habit {
                 Completion(date: Date())
             ],
             isDeleted: false,
-            isAccepted: true
+            isAccepted: false
         ),
         Habit(
             id: "habit7",

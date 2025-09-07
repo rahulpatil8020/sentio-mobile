@@ -30,7 +30,7 @@ struct HabitRow: View {
                             .fill(completedOnDay ? Color.green.opacity(0.8) : Color.gray.opacity(0.35))
                             .frame(width: 26, height: 26)
                             .overlay(
-                                Image(systemName: completedOnDay ? "checkmark" : "plus")
+                                Image(systemName: completedOnDay ? "checkmark" : "")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(.white.opacity(0.95))
                             )

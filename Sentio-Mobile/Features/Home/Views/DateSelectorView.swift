@@ -32,12 +32,11 @@ struct DateSelectorView: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
             TabView(selection: $currentWeekIndex) {
                 ForEach(weeks.indices, id: \.self) { index in
                     let week = weeks[index]
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: 7) {
                         ForEach(week, id: \.self) { date in
                             let isFuture = date > Date()
 
@@ -88,7 +87,6 @@ struct DateSelectorView: View {
                 currentWeekIndex = weeks.count - 1  // Last index is this week
             }
         }
-    }
 }
 
 #Preview {
